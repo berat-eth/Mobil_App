@@ -4,6 +4,7 @@ const AnalyticsService = require('./analytics-service');
 class AggregationService {
   constructor() {
     this.analyticsService = new AnalyticsService();
+    this.isAggregatingMonthly = false; // Lock flag
   }
 
   /**
@@ -366,6 +367,13 @@ class AggregationService {
    * Tüm aktif tenant'lar için aylık özet hesapla
    */
   async aggregateAllTenantsMonthly() {
+    // Eğer zaten çalışıyorsa, yeni çağrıyı yoksay
+    if (this.isAggregatingMonthly) {
+      console.warn('⚠️ Monthly aggregation already in progress, skipping...');
+      return false;
+    }
+
+    this.isAggregatingMonthly = true;
     try {
       const [tenants] = await poolWrapper.execute(
         'SELECT id FROM tenants WHERE isActive = true'
@@ -410,6 +418,9 @@ class AggregationService {
         console.error('❌ Error in aggregateAllTenantsMonthly:', error);
       }
       throw error;
+    } finally {
+      // Lock'u her durumda serbest bırak
+      this.isAggregatingMonthly = false;
     }
   }
 }

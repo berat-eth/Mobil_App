@@ -1629,7 +1629,14 @@ async function initializeDatabase() {
       nextMonth.setMonth(now.getMonth() + 1);
       nextMonth.setDate(1);
       nextMonth.setHours(4, 0, 0, 0);
-      const msUntilNextMonth = nextMonth.getTime() - now.getTime();
+      let msUntilNextMonth = nextMonth.getTime() - now.getTime();
+      
+      // 32-bit signed integer limitini aşmamak için maksimum 24 gün (2,073,600,000 ms) ile sınırla
+      const MAX_TIMEOUT_MS = 24 * 24 * 60 * 60 * 1000; // 24 gün = 2,073,600,000 ms
+      if (msUntilNextMonth > MAX_TIMEOUT_MS) {
+        msUntilNextMonth = MAX_TIMEOUT_MS;
+        console.warn(`⚠️ Monthly aggregation timeout capped at ${MAX_TIMEOUT_MS}ms (24 days)`);
+      }
 
       scheduledTasks.monthlyAggregationTimeout = setTimeout(() => {
         // İlk çalıştırma
@@ -1640,13 +1647,15 @@ async function initializeDatabase() {
         });
 
         // Sonraki çalıştırmalar için interval (yaklaşık 30 gün)
+        // 32-bit limit için maksimum değer kullan
+        const monthlyInterval = Math.min(30 * 24 * 60 * 60 * 1000, MAX_TIMEOUT_MS);
         scheduledTasks.monthlyAggregationInterval = setInterval(() => {
           aggregationService.aggregateAllTenantsMonthly().catch(err => {
             if (err.message !== 'Pool is closed') {
               console.error('❌ Monthly aggregation error:', err);
             }
           });
-        }, 30 * 24 * 60 * 60 * 1000);
+        }, monthlyInterval);
       }, msUntilNextMonth);
 
       console.log('⏱️ Analytics Aggregation Scheduler started');

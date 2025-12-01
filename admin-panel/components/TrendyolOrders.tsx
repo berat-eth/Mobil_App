@@ -315,11 +315,23 @@ export default function TrendyolOrders() {
           .substring(0, 50) // Maksimum 50 karakter
         const fileName = `kargo-fisi-${sanitizedCustomerName}-${selectedOrder.externalOrderId}.pdf`
         
+        // Backend'de veritabanı güncellemesi PDF oluşturulduktan sonra yapılıyor (doc.on('end'))
+        // Bu yüzden response geldikten sonra kısa bir süre bekleyip siparişleri yeniden yükle
+        setTimeout(async () => {
+          await loadOrders()
+        }, 1000)
+        
         // PDF'i yeni pencerede aç ve yazdır
         const printWindow = window.open(url, '_blank')
         if (printWindow) {
-          printWindow.onload = () => {
-            printWindow.print()
+          // onload event'i her zaman çalışmayabilir, bu yüzden setTimeout kullan
+          setTimeout(() => {
+            try {
+              printWindow.print()
+            } catch (err) {
+              console.error('Yazdırma hatası:', err)
+            }
+            
             // Yazdırma işlemi tamamlandıktan sonra indirme seçeneği sun
             setTimeout(() => {
               if (confirm('Kargo fişi yazdırıldı. Dosyayı indirmek ister misiniz?')) {
@@ -332,7 +344,7 @@ export default function TrendyolOrders() {
               }
               window.URL.revokeObjectURL(url)
             }, 1000)
-          }
+          }, 500)
         } else {
           // Popup engellendi, direkt indir
           const a = document.createElement('a')
@@ -343,9 +355,6 @@ export default function TrendyolOrders() {
           window.URL.revokeObjectURL(url)
           document.body.removeChild(a)
         }
-        
-        // Kargo fişi başarıyla oluşturuldu, siparişleri yeniden yükle (veritabanından cargoSlipPrintedAt bilgisi gelecek)
-        await loadOrders()
       } else {
         const errorText = await response.text()
         let errorMessage = 'Bilinmeyen hata'

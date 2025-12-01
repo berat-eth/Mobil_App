@@ -61,7 +61,7 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['react-icons'],
   },
-  // Docker için standalone output
+  // Standalone output for optimized builds
   output: 'standalone',
   // Optimized cache headers
   async headers() {

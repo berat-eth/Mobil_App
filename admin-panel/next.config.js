@@ -17,7 +17,7 @@ const nextConfig = {
   // Performance
   poweredByHeader: false,
   
-  // Docker için standalone output
+  // Standalone output for optimized builds
   output: 'standalone',
   
   // Security headers

@@ -26,24 +26,24 @@ NC='\033[0m'
 # --------------------------
 # Main Site
 MAIN_DOMAIN="huglutekstil.com"
-MAIN_DIR="/root/final_versiyonn/web"
+MAIN_DIR="/root/Mobil_App/web"
 MAIN_PORT=3006
 MAIN_PM2_NAME="huglu-web"
 
 # API
 API_DOMAIN="api.huglutekstil.com"
-API_DIR="/root/final_versiyonn/server"
+API_DIR="/root/Mobil_App/server"
 API_PORT=3000
 API_PM2_NAME="huglu-api"
 
 # Admin Panel
 ADMIN_DOMAIN="admin.huglutekstil.com"
-ADMIN_DIR="/root/final_versiyonn/admin-panel"
+ADMIN_DIR="/root/Mobil_App/admin-panel"
 ADMIN_PORT=3001
 ADMIN_PM2_NAME="admin-panel"
 
 # AI/ML Service
-AI_DIR="/root/final_versiyonn/ml-service"
+AI_DIR="/root/Mobil_App/ml-service"
 AI_PORT=8001
 AI_PM2_NAME="ml-service"
 
@@ -478,10 +478,10 @@ install_nodejs() {
 
 clone_repository() {
     echo -e "${BLUE}[4/7] Repository klonlanıyor...${NC}"
-    if [ ! -d "/root/final_versiyonn" ]; then
-        git clone https://github.com/berat-eth/final_versiyonn.git /root/final_versiyonn
+    if [ ! -d "/root/Mobil_App" ]; then
+        git clone https://github.com/berat-eth/Mobil_App.git /root/Mobil_App
     else
-        cd /root/final_versiyonn
+        cd /root/Mobil_App
         git pull origin main || git pull origin master || true
     fi
 }

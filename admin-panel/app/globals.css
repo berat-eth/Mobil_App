@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --muted: #64748b;
+  --muted-bg: #f1f5f9;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+}
+
+.dark {
+  --background: var(--dark-bg);
+  --foreground: var(--dark-text);
+  --card-bg: var(--dark-card);
+  --card-border: var(--dark-border);
+  --muted: #94a3b8;
+  --muted-bg: #1e293b;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@layer utilities {
+  .gradient-bg {
+    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600;
+  }
+  
+  .dark .gradient-bg {
+    @apply bg-gradient-to-r from-blue-800 via-purple-800 to-indigo-800;
+  }
+  
+  .gradient-blue {
+    @apply bg-gradient-to-r from-blue-600 to-blue-400;
+  }
+  
+  .dark .gradient-blue {
+    @apply bg-gradient-to-r from-blue-800 to-blue-600;
+  }
+  
+  .gradient-green {
+    @apply bg-gradient-to-r from-emerald-600 to-green-400;
+  }
+  
+  .dark .gradient-green {
+    @apply bg-gradient-to-r from-emerald-800 to-green-600;
+  }
+  
+  .gradient-orange {
+    @apply bg-gradient-to-r from-pink-500 to-rose-500;
+  }
+  
+  .dark .gradient-orange {
+    @apply bg-gradient-to-r from-pink-700 to-rose-700;
+  }
+  
+  .gradient-purple {
+    @apply bg-gradient-to-r from-blue-400 to-cyan-400;
+  }
+  
+  .dark .gradient-purple {
+    @apply bg-gradient-to-r from-blue-600 to-cyan-600;
+  }
+
+  .card-hover {
+    transition: all 0.3s ease;
+  }
+  
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  .dark .card-hover:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--muted-bg);
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
+}
+
+/* Leaflet Map Styles */
+@import 'leaflet/dist/leaflet.css';
+
+.leaflet-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background-color: var(--dark-card);
+  color: var(--dark-text);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
+.custom-marker {
+  background: transparent;
+  border: none;
+}

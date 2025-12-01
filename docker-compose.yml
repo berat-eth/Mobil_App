@@ -1,0 +1,195 @@
+version: '3.8'
+
+services:
+  # MySQL Veritabanı
+  mysql:
+    image: mysql:8.0
+    container_name: huglu-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-huglu_db}
+      MYSQL_USER: ${MYSQL_USER:-huglu_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-huglu_password}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./server/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - huglu-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: huglu-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - huglu-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Backend API
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: huglu-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER:-huglu_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-huglu_password}
+      DB_NAME: ${MYSQL_DATABASE:-huglu_db}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-huglu-admin-token-2025}
+      ADMIN_KEY: ${ADMIN_KEY:-huglu-admin-2024-secure-key-CHANGE-THIS}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      IYZICO_API_KEY: ${IYZICO_API_KEY:-}
+      IYZICO_SECRET_KEY: ${IYZICO_SECRET_KEY:-}
+      IYZICO_BASE_URL: ${IYZICO_BASE_URL:-https://api.iyzipay.com}
+    volumes:
+      - ./server:/app
+      - api_uploads:/app/uploads
+      - api_logs:/app/logs
+      - api_tmp:/app/tmp
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - huglu-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ML Servisi
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: huglu-ml-service
+    restart: unless-stopped
+    ports:
+      - "${ML_SERVICE_PORT:-8001}:8001"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER:-huglu_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-huglu_password}
+      DB_NAME: ${MYSQL_DATABASE:-huglu_db}
+      REDIS_URL: redis://redis:6379
+      REDIS_QUEUE_NAME: ${REDIS_QUEUE_NAME:-ml:events}
+      ML_SERVICE_HOST: 0.0.0.0
+      ML_SERVICE_PORT: 8001
+      MODEL_STORAGE_PATH: ./saved_models
+      LOG_LEVEL: ${ML_LOG_LEVEL:-INFO}
+    volumes:
+      - ml_models:/app/saved_models
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - huglu-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Web Sitesi
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: huglu-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3006}:3006"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:3000/api}
+      NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY:-huglu_1f3a9b6c2e8d4f0a7b1c3d5e9f2468ab1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f}
+    depends_on:
+      - api
+    networks:
+      - huglu-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3006', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Admin Paneli
+  admin:
+    build:
+      context: ./admin-panel
+      dockerfile: Dockerfile
+    container_name: huglu-admin
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PORT:-3001}:3001"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:3000/api}
+      NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY:-huglu_1f3a9b6c2e8d4f0a7b1c3d5e9f2468ab1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f}
+      NEXT_PUBLIC_ADMIN_KEY: ${ADMIN_KEY:-huglu-admin-2024-secure-key-CHANGE-THIS}
+    depends_on:
+      - api
+    networks:
+      - huglu-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  api_uploads:
+    driver: local
+  api_logs:
+    driver: local
+  api_tmp:
+    driver: local
+  ml_models:
+    driver: local
+
+networks:
+  huglu-network:
+    driver: bridge
+

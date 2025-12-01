@@ -1,0 +1,21 @@
+{
+  "sources": [
+    {
+      "name": "Huğlu Outdoor",
+      "url": "https://www.hugluoutdoor.com/TicimaxXml/2AF3B156D82546DCA5F28C2012E64724/",
+      "category": "outdoor",
+      "priority": 1,
+      "enabled": true,
+      "updateInterval": 3600000,
+      "timeout": 30000,
+      "type": "ticimax"
+    }
+  ],
+  "settings": {
+    "defaultUpdateInterval": 3600000,
+    "maxRetries": 3,
+    "retryDelay": 5000,
+    "batchSize": 100,
+    "logLevel": "info"
+  }
+}

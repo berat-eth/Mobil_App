@@ -1,0 +1,8 @@
+# robots.txt
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Sitemap
+Sitemap: https://huglutekstilatölyesi.com/sitemap.xml

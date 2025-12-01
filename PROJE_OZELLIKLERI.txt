@@ -1,0 +1,698 @@
+================================================================================
+                    HUĞLU OUTDOOR E-TİCARET PLATFORMU
+                    PROJE ÖZELLİKLERİ VE İŞLEVSELLİK RAPORU
+================================================================================
+
+Bu dokümantasyon, Huğlu Outdoor e-ticaret platformunun tüm özelliklerini,
+bileşenlerini ve işlevselliklerini detaylı olarak açıklamaktadır.
+
+================================================================================
+                            PROJE GENEL BAKIŞ
+================================================================================
+
+Huğlu Outdoor, outdoor ve tekstil ürünleri satışı yapan kapsamlı bir 
+e-ticaret platformudur. Proje, mobil uygulama, web sitesi, admin paneli,
+backend API ve makine öğrenmesi servisinden oluşan modern bir mimariye sahiptir.
+
+Ana Bileşenler:
+- Mobil Uygulama (React Native/Expo)
+- Web Sitesi (Next.js)
+- Admin Paneli (Next.js)
+- Backend API (Node.js/Express)
+- ML Servisi (Python/FastAPI)
+
+================================================================================
+                        1. MOBİL UYGULAMA ÖZELLİKLERİ
+================================================================================
+
+1.1. KULLANICI YÖNETİMİ
+------------------------
+- Kullanıcı kaydı ve girişi
+- Biyometrik giriş (Parmak izi/Yüz tanıma)
+- Şifre sıfırlama
+- Profil düzenleme
+- Çoklu dil desteği (Türkçe/İngilizce)
+- 2FA (İki faktörlü kimlik doğrulama)
+
+1.2. ÜRÜN YÖNETİMİ
+------------------
+- Ürün kataloğu görüntüleme
+- Kategori bazlı filtreleme
+- Marka bazlı filtreleme
+- Fiyat aralığı filtreleme
+- Arama özelliği
+- Ürün detay sayfası
+- Ürün görselleri
+- Stok durumu gösterimi
+- Ürün yorumları ve puanlama
+- Favorilere ekleme/çıkarma
+- Barkod tarama (NFC desteği)
+
+1.3. SEPET VE SİPARİŞ
+---------------------
+- Sepete ürün ekleme
+- Sepet içeriği yönetimi
+- Miktar güncelleme
+- Sepetten ürün silme
+- Sipariş oluşturma
+- Sipariş geçmişi
+- Sipariş detayları
+- Sipariş durumu takibi
+- Sipariş iptali
+- İade talebi oluşturma
+
+1.4. ÖDEME SİSTEMİ
+------------------
+- Kredi/Banka kartı ile ödeme
+- EFT/Havale ile ödeme
+- Cüzdan (Wallet) ile ödeme
+- İyzico entegrasyonu
+- Ödeme geçmişi
+- Fatura görüntüleme
+
+1.5. CÜZDAN (WALLET) SİSTEMİ
+----------------------------
+- Cüzdan bakiyesi görüntüleme
+- Cüzdana para yükleme (Kart/Banka transferi)
+- Cüzdandan para çekme talebi
+- Cüzdan ile ödeme
+- Cüzdan geçmişi
+- Hediye çeki oluşturma
+- Kullanıcılar arası para transferi
+- HPay bonus sistemi
+
+1.6. ADRES YÖNETİMİ
+-------------------
+- Teslimat adresi ekleme
+- Fatura adresi ekleme
+- Adres düzenleme
+- Adres silme
+- Varsayılan adres belirleme
+- Google Maps entegrasyonu
+
+1.7. KAMPANYA VE İNDİRİMLER
+---------------------------
+- Flash indirimler
+- Kupon kodları
+- Kişiselleştirilmiş teklifler
+- Çarkıfelek (İndirim çarkı)
+- Kampanya bildirimleri
+- Kampanya geçmişi
+
+1.8. ÖZEL ÜRETİM
+---------------
+- Özel üretim talebi oluşturma
+- Özel üretim takibi
+- Özel üretim detayları
+- Özel üretim durumu
+
+1.9. BAYİLİK SİSTEMİ
+-------------------
+- Bayilik başvurusu
+- Bayilik başvuru takibi
+- Bayilik başvuru durumu
+
+1.10. REFERANS SİSTEMİ
+----------------------
+- Referans kodu paylaşma
+- Referans kazancı görüntüleme
+- Referans geçmişi
+
+1.11. KULLANICI SEVİYESİ
+-----------------------
+- Kullanıcı seviye sistemi
+- Seviye avantajları
+- Seviye ilerleme takibi
+
+1.12. KARGO TAKİBİ
+------------------
+- Kargo takip numarası sorgulama
+- Teslimat durumu
+- Kargo geçmişi
+
+1.13. BİLDİRİMLER
+----------------
+- Push bildirimleri
+- Kampanya bildirimleri
+- Sipariş bildirimleri
+- Stok bildirimleri
+- Bildirim geçmişi
+
+1.14. DESTEK VE İLETİŞİM
+------------------------
+- Müşteri destek sistemi
+- SSS (Sık Sorulan Sorular)
+- İletişim formu
+- Canlı destek (Chat)
+
+1.15. DİĞER ÖZELLİKLER
+----------------------
+- Mağaza bulucu (Store Locator)
+- Favori ürünler
+- Sipariş geçmişi
+- İade talepleri
+- Faturalar
+- Ayarlar
+- Çıkış yapma
+
+================================================================================
+                        2. WEB SİTESİ ÖZELLİKLERİ
+================================================================================
+
+2.1. ANA SAYFA
+-------------
+- Hero section
+- Özellikler bölümü
+- Referanslar
+- Ürün vitrinleri
+- Kampanyalar
+
+2.2. ÜRÜNLER SAYFASI
+-------------------
+- Ürün kataloğu
+- Kategori filtreleme
+- Arama özelliği
+- Ürün detay sayfası
+
+2.3. KURUMSAL SAYFALAR
+---------------------
+- Hakkımızda
+- İletişim
+- Mobil uygulama tanıtımı
+
+2.4. YÖNETİCİ PANELİ GİRİŞİ
+---------------------------
+- Admin panel erişimi
+
+2.5. MÜŞTERİ PANELİ
+------------------
+- Müşteri kontrol paneli
+
+================================================================================
+                        3. ADMIN PANELİ ÖZELLİKLERİ
+================================================================================
+
+3.1. DASHBOARD
+--------------
+- Genel istatistikler
+- Satış grafikleri
+- Kategori performansı
+- En çok satan ürünler
+- Son siparişler
+- Gelir analizi
+- Müşteri davranış analizi
+- Saatlik aktivite grafikleri
+- KPI metrikleri
+- Trafik kaynakları
+- Stok uyarıları
+- Canlı kullanıcılar
+- Snort IDS istatistikleri
+- Özel üretim istatistikleri
+
+3.2. ÜRÜN YÖNETİMİ
+-----------------
+- Ürün listesi
+- Ürün ekleme/düzenleme/silme
+- Ürün kategorileri
+- Marka yönetimi
+- Stok yönetimi
+- Fiyat yönetimi
+- Ürün görselleri
+- Toplu ürün işlemleri
+- Ürün durumu (Aktif/Pasif)
+
+3.3. SİPARİŞ YÖNETİMİ
+--------------------
+- Sipariş listesi
+- Sipariş detayları
+- Sipariş durumu güncelleme
+- Sipariş filtreleme
+- Sipariş arama
+- İade yönetimi
+- İptal yönetimi
+
+3.4. MÜŞTERİ YÖNETİMİ
+--------------------
+- Müşteri listesi
+- Müşteri detayları
+- Müşteri düzenleme
+- Müşteri segmentasyonu
+- Müşteri geçmişi
+- Müşteri arama
+
+3.5. KAMPANYA YÖNETİMİ
+----------------------
+- Kampanya oluşturma
+- Kampanya düzenleme
+- Kampanya silme
+- Flash Deal yönetimi
+- Kupon yönetimi
+- İndirim çarkı yönetimi
+- Kampanya performans analizi
+- Kampanya görüntüleme/önizleme
+
+3.6. PAZARLAMA
+-------------
+- E-posta kampanyaları
+- SMS kampanyaları
+- Push bildirimleri
+- Story yönetimi
+- Slider yönetimi
+- Popup yönetimi
+- AI Müşteri Bulucu (Google Maps Scraper)
+
+3.7. FİNANS YÖNETİMİ
+-------------------
+- Ödeme işlemleri
+- Kullanıcı cüzdanları
+- Bakiye yükleme talepleri
+- Bakiye çekim talepleri
+- Referans kazançları
+- Gelir raporları
+- Gider raporları
+
+3.8. ANALİTİK VE RAPORLAMA
+--------------------------
+- Detaylı analitik
+- Canlı veriler
+- Canlı kullanıcılar
+- Satış raporları
+- Müşteri raporları
+- Ürün raporları
+- Kategori raporları
+- Zaman bazlı analizler
+
+3.9. YAPAY ZEKA ÖZELLİKLERİ
+---------------------------
+- ML Insights (Makine Öğrenmesi İçgörüleri)
+- Project Ajax
+- Ürün önerileri
+- Kullanıcı davranış tahminleri
+- Anomali tespiti
+- Segmentasyon analizi
+- Trend analizi
+- Öneri sistemi
+
+3.10. ÜRETİM TAKİBİ
+-------------------
+- Özel üretim talepleri
+- Üretim durumu takibi
+- Üretim istatistikleri
+
+3.11. SİSTEM YÖNETİMİ
+--------------------
+- Kullanıcı rolleri ve yetkileri
+- Sistem ayarları
+- API yönetimi
+- Log yönetimi
+- Yedekleme
+- Güvenlik ayarları
+
+3.12. DİĞER ÖZELLİKLER
+----------------------
+- Admin logları
+- Sistem durumu
+- Performans izleme
+- Hata yönetimi
+
+================================================================================
+                        4. BACKEND API ÖZELLİKLERİ
+================================================================================
+
+4.1. GÜVENLİK
+-------------
+- Helmet.js ile güvenlik başlıkları
+- Rate limiting (100 istek/15 dakika)
+- CORS yapılandırması
+- Veri şifreleme (AES-256-CBC)
+- Şifre hashleme (bcrypt)
+- API key kimlik doğrulama
+- JWT token sistemi
+- Admin kimlik doğrulama
+- SQL injection koruması
+- XSS koruması
+
+4.2. VERİTABANI
+---------------
+- MySQL veritabanı
+- Connection pooling (20 bağlantı)
+- Multi-tenant desteği
+- Otomatik yeniden bağlanma
+- Migration desteği
+- Query logging
+- Performans izleme
+
+4.3. CACHING
+------------
+- Redis entegrasyonu
+- İstek önbellekleme
+- Session yönetimi
+- Performans optimizasyonu
+
+4.4. XML SENKRONİZASYONU
+------------------------
+- Otomatik ürün senkronizasyonu
+- XML kaynak yönetimi
+- Zamanlanmış senkronizasyon
+- Hata yönetimi
+
+4.5. API ENDPOİNTLERİ
+---------------------
+- Health check
+- Ürün API'leri
+- Sepet API'leri
+- Sipariş API'leri
+- Kullanıcı API'leri
+- Ödeme API'leri
+- Cüzdan API'leri
+- Kampanya API'leri
+- Analitik API'leri
+- ML API'leri
+
+4.6. PERFORMANS
+---------------
+- Compression middleware
+- Response caching
+- Connection pooling
+- Async işlemler
+- Paralel istek işleme
+
+4.7. MONİTORİNG
+---------------
+- Health check endpoint
+- Logging sistemi
+- PM2 clustering
+- Sistem durumu izleme
+- Hata takibi
+
+4.8. DEPLOYMENT
+---------------
+- PM2 yönetimi
+- Systemd entegrasyonu
+- Nginx reverse proxy
+- Otomatik deployment scriptleri
+
+================================================================================
+                        5. ML SERVİSİ ÖZELLİKLERİ
+================================================================================
+
+5.1. KULLANICI DAVRANIŞ ANALİZİ
+-------------------------------
+- Kullanıcı etkileşim analizi
+- Tıklama davranışı
+- Görüntüleme davranışı
+- Satın alma davranışı
+- Zaman bazlı analiz
+
+5.2. ÜRÜN ÖNERİLERİ
+------------------
+- Kişiselleştirilmiş öneriler
+- Benzer ürün önerileri
+- Popüler ürün önerileri
+- Trend ürün önerileri
+- Kategori bazlı öneriler
+
+5.3. TAHMİN SİSTEMİ
+------------------
+- Satın alma tahmini
+- Churn tahmini
+- Değer tahmini
+- Zaman tahmini
+
+5.4. ANOMALİ TESPİTİ
+-------------------
+- Bot tespiti
+- Fraud tespiti
+- Anormal davranış tespiti
+- Güvenlik uyarıları
+
+5.5. SEGMENTASYON
+----------------
+- Kullanıcı segmentasyonu
+- Davranış bazlı segmentler
+- Değer bazlı segmentler
+- Dinamik segmentasyon
+
+5.6. GERÇEK ZAMANLI İŞLEME
+--------------------------
+- Redis stream işleme
+- Gerçek zamanlı tahminler
+- Gerçek zamanlı öneriler
+- WebSocket desteği
+
+5.7. MODEL YÖNETİMİ
+-------------------
+- Model eğitimi
+- Model versiyonlama
+- Model performans izleme
+- Model deployment
+- A/B testing
+
+5.8. İSTATİSTİKLER
+-----------------
+- İşlenen event sayısı
+- Yapılan tahmin sayısı
+- Oluşturulan öneri sayısı
+- Tespit edilen anomali sayısı
+- Güncellenen segment sayısı
+
+================================================================================
+                        6. TEKNİK ÖZELLİKLER
+================================================================================
+
+6.1. MOBİL UYGULAMA TEKNOLOJİLERİ
+---------------------------------
+- React Native 0.74.5
+- Expo 51.0.19
+- TypeScript
+- React Navigation
+- AsyncStorage
+- Expo Secure Store
+- Expo Location
+- Expo Image Picker
+- React Native NFC Manager
+- Expo Local Authentication
+
+6.2. WEB SİTESİ TEKNOLOJİLERİ
+------------------------------
+- Next.js 14
+- TypeScript
+- Tailwind CSS
+- React 18
+- Material Symbols
+
+6.3. ADMIN PANELİ TEKNOLOJİLERİ
+-------------------------------
+- Next.js 14
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+- Recharts
+- Lucide React
+- Monaco Editor
+- Leaflet (Harita)
+- Puppeteer
+- PapaParse (CSV)
+- XLSX
+
+6.4. BACKEND TEKNOLOJİLERİ
+--------------------------
+- Node.js
+- Express.js
+- MySQL2
+- Redis (ioredis)
+- BullMQ (Job Queue)
+- JWT
+- Bcrypt
+- Helmet
+- CORS
+- Compression
+- Multer (File upload)
+- XML2JS
+- Cheerio (Web scraping)
+- Playwright (Browser automation)
+- Iyzico (Payment gateway)
+
+6.5. ML SERVİSİ TEKNOLOJİLERİ
+-----------------------------
+- Python
+- FastAPI
+- Redis
+- MySQL
+- Machine Learning modelleri
+- WebSocket
+
+6.6. DEPLOYMENT VE DEVOPS
+------------------------
+- PM2
+- Nginx
+- Systemd
+- Git
+- Automated deployment scripts
+
+================================================================================
+                        7. İŞLEVSELLİK DETAYLARI
+================================================================================
+
+7.1. MULTI-TENANT YAPISI
+------------------------
+- Çoklu müşteri desteği
+- Tenant bazlı veri izolasyonu
+- Tenant bazlı API key yönetimi
+- Tenant bazlı ayarlar
+
+7.2. ÖDEME ENTEGRASYONLARI
+--------------------------
+- İyzico entegrasyonu
+- Kredi kartı ödemeleri
+- EFT/Havale ödemeleri
+- Cüzdan ödemeleri
+- Ödeme geçmişi
+- Fatura oluşturma
+
+7.3. KARGO ENTEGRASYONLARI
+--------------------------
+- Kargo takip sistemi
+- Teslimat durumu
+- Kargo firması entegrasyonu
+
+7.4. BİLDİRİM SİSTEMLERİ
+-----------------------
+- Push bildirimleri
+- E-posta bildirimleri
+- SMS bildirimleri
+- İn-app bildirimler
+
+7.5. ARAMA VE FİLTRELEME
+------------------------
+- Ürün arama
+- Gelişmiş filtreleme
+- Kategori filtreleme
+- Marka filtreleme
+- Fiyat filtreleme
+- Stok durumu filtreleme
+
+7.6. RAPORLAMA
+-------------
+- Satış raporları
+- Müşteri raporları
+- Ürün raporları
+- Finansal raporlar
+- Analitik raporlar
+- CSV/Excel export
+
+7.7. GÜVENLİK ÖZELLİKLERİ
+-------------------------
+- Şifre güvenliği
+- API güvenliği
+- Veri şifreleme
+- SQL injection koruması
+- XSS koruması
+- CSRF koruması
+- Rate limiting
+- IP whitelisting
+- Admin yetkilendirme
+
+================================================================================
+                        8. KULLANICI DENEYİMİ
+================================================================================
+
+8.1. RESPONSIVE TASARIM
+-----------------------
+- Mobil uyumlu
+- Tablet uyumlu
+- Desktop uyumlu
+- Farklı ekran boyutlarına adapte
+
+8.2. DARK MODE
+-------------
+- Karanlık tema desteği
+- Otomatik tema değişimi
+- Kullanıcı tercihi
+
+8.3. PERFORMANS
+---------------
+- Hızlı yükleme
+- Optimize edilmiş görseller
+- Lazy loading
+- Code splitting
+- Caching stratejileri
+
+8.4. ERİŞİLEBİLİRLİK
+-------------------
+- Klavye navigasyonu
+- Ekran okuyucu desteği
+- Yüksek kontrast
+- Büyük yazı tipleri
+
+8.5. ÇOKLU DİL
+-------------
+- Türkçe
+- İngilizce
+- Dil değiştirme
+- Yerelleştirme
+
+================================================================================
+                        9. ENTEGRASYONLAR
+================================================================================
+
+9.1. ÖDEME GATEWAY'LERİ
+-----------------------
+- İyzico
+
+9.2. KARGO FİRMALARI
+-------------------
+- Kargo takip API'leri
+
+9.3. HARİTA SERVİSLERİ
+---------------------
+- Google Maps
+- Leaflet
+
+9.4. BİLDİRİM SERVİSLERİ
+----------------------
+- Push notification servisleri
+- SMS gateway'leri
+- E-posta servisleri
+
+9.5. ANALİTİK SERVİSLERİ
+-----------------------
+- Custom analytics
+- ML servisleri
+
+================================================================================
+                        10. GELECEKTEKİ ÖZELLİKLER
+================================================================================
+
+Potansiyel olarak eklenebilecek özellikler:
+- Canlı sohbet desteği
+- Sesli asistan entegrasyonu
+- AR/VR ürün görüntüleme
+- Sosyal medya entegrasyonu
+- Yorum ve değerlendirme sistemi
+- Blog/Haberler bölümü
+- Üyelik programı geliştirmeleri
+- Daha fazla ödeme yöntemi
+- Uluslararası kargo desteği
+- Çoklu para birimi desteği
+
+================================================================================
+                              SONUÇ
+================================================================================
+
+Huğlu Outdoor e-ticaret platformu, modern teknolojiler kullanılarak geliştirilmiş
+kapsamlı bir e-ticaret çözümüdür. Mobil uygulama, web sitesi, admin paneli,
+backend API ve ML servisi ile entegre bir sistem sunmaktadır.
+
+Platform, kullanıcı yönetimi, ürün yönetimi, sipariş yönetimi, ödeme sistemi,
+cüzdan sistemi, kampanya yönetimi, analitik, yapay zeka özellikleri ve daha
+birçok özellik içermektedir.
+
+Güvenlik, performans, kullanıcı deneyimi ve ölçeklenebilirlik göz önünde
+bulundurularak tasarlanmıştır.
+
+================================================================================
+                    Dokümantasyon Tarihi: 2024
+                    Versiyon: 1.0
+================================================================================
+

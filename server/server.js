@@ -1631,8 +1631,9 @@ async function initializeDatabase() {
       nextMonth.setHours(4, 0, 0, 0);
       let msUntilNextMonth = nextMonth.getTime() - now.getTime();
       
-      // 32-bit signed integer limitini aşmamak için maksimum 24 gün (2,073,600,000 ms) ile sınırla
-      const MAX_TIMEOUT_MS = 24 * 24 * 60 * 60 * 1000; // 24 gün = 2,073,600,000 ms
+      // 32-bit signed integer limitini aşmamak için maksimum 24 gün ile sınırla
+      // 24 gün = 24 * 24 * 60 * 60 * 1000 = 2,073,600,000 ms (32-bit limit: 2,147,483,647)
+      const MAX_TIMEOUT_MS = 24 * 24 * 60 * 60 * 1000;
       if (msUntilNextMonth > MAX_TIMEOUT_MS) {
         msUntilNextMonth = MAX_TIMEOUT_MS;
         console.warn(`⚠️ Monthly aggregation timeout capped at ${MAX_TIMEOUT_MS}ms (24 days)`);

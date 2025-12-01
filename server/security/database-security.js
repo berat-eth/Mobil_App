@@ -46,7 +46,7 @@ class DatabaseSecurity {
       password: process.env.DB_PASSWORD || '38cdfD8218.',
       database: process.env.DB_NAME || 'u987029066_mobil_app',
       port: parseInt(process.env.DB_PORT) || 3306,
-      connectionLimit: 30,       // ✅ MySQL max_user_connections=50 limiti için güvenli değer (30)
+      connectionLimit: 10,       // ✅ MySQL max_user_connections=50 limiti için güvenli değer (10)
       queueLimit: 0,             // ✅ Queue limit'i kaldır (0 = unlimited, sadece connection limit kontrol edilir)
       waitForConnections: true,
       acquireTimeout: 10000,      // ✅ 5 saniye → 10 saniye (queue'da beklerken daha fazla zaman)

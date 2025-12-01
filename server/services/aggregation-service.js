@@ -214,16 +214,16 @@ class AggregationService {
 
       // Overview metriklerini al (sıralı çağrı - queue limit hatası için)
       const overview = await this.analyticsService.getOverview(tenantId, timeRange);
-      await new Promise(resolve => setTimeout(resolve, 300)); // 100ms → 300ms delay
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 300ms → 1000ms delay
       
       const userAnalytics = await this.analyticsService.getUserAnalytics(tenantId, timeRange);
-      await new Promise(resolve => setTimeout(resolve, 300)); // 100ms → 300ms delay
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 300ms → 1000ms delay
       
       const funnelData = await this.analyticsService.getFunnelAnalysis(tenantId, timeRange);
-      await new Promise(resolve => setTimeout(resolve, 300)); // 100ms → 300ms delay
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 300ms → 1000ms delay
       
       const performanceMetrics = await this.analyticsService.getPerformanceMetrics(tenantId, timeRange);
-      await new Promise(resolve => setTimeout(resolve, 300)); // INSERT öncesi delay
+      await new Promise(resolve => setTimeout(resolve, 1000)); // INSERT öncesi delay
 
       // Veritabanına kaydet
       await poolWrapper.execute(`
@@ -375,14 +375,30 @@ class AggregationService {
         try {
           await this.aggregateMonthly(tenant.id);
           // Tenant'lar arasında delay ekle (queue limit hatası için)
-          await new Promise(resolve => setTimeout(resolve, 500)); // 200ms → 500ms delay
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 500ms → 2000ms delay
         } catch (error) {
-          // Don't log "Pool is closed" errors during shutdown
-          if (error.message && !error.message.includes('Pool is closed')) {
-            console.error(`❌ Error aggregating monthly for tenant ${tenant.id}:`, error);
+          // ER_USER_LIMIT_REACHED hatası için özel handling
+          if (error.code === 'ER_USER_LIMIT_REACHED' || error.errno === 1226) {
+            console.error(`⚠️ Connection limit reached, waiting 5 seconds before retry...`);
+            await new Promise(resolve => setTimeout(resolve, 5000)); // 5 saniye bekle
+            // Tekrar dene
+            try {
+              await this.aggregateMonthly(tenant.id);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            } catch (retryError) {
+              if (retryError.message && !retryError.message.includes('Pool is closed')) {
+                console.error(`❌ Error aggregating monthly for tenant ${tenant.id} after retry:`, retryError);
+              }
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          } else {
+            // Don't log "Pool is closed" errors during shutdown
+            if (error.message && !error.message.includes('Pool is closed')) {
+              console.error(`❌ Error aggregating monthly for tenant ${tenant.id}:`, error);
+            }
+            // Hata durumunda da delay ekle (queue'nun temizlenmesi için)
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 500ms → 2000ms delay
           }
-          // Hata durumunda da delay ekle (queue'nun temizlenmesi için)
-          await new Promise(resolve => setTimeout(resolve, 500)); // 200ms → 500ms delay
         }
       }
 

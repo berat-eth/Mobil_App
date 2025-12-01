@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { usePathname } from 'next/navigation'
-import { slidersApi, productsApi } from '@/utils/api'
+import { productsApi } from '@/utils/api'
 
 const Header = dynamic(() => import('@/components/Header'), { ssr: false })
 const Footer = dynamic(() => import('@/components/Footer'), { ssr: false })
@@ -65,8 +65,7 @@ const STATS = [
 const CATEGORIES = [
   { name: 'Outdoor Giyim', description: 'Softshell, polar ve teknik montlar', image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=75', slug: 'outdoor-giyim' },
   { name: 'Kamp Malzemeleri', description: 'Kamp ve doğa aktiviteleri için ekipmanlar', image: 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=800&q=75', slug: 'kamp-malzemeleri' },
-  { name: 'Ayakkabı', description: 'Trekking ve outdoor ayakkabıları', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=75', slug: 'ayakkabi' },
-  { name: 'Aksesuar', description: 'Çanta, şapka ve diğer aksesuarlar', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=75', slug: 'aksesuar' }
+  { name: 'Aksesuar', description: 'Bere, şapka ve diğer aksesuarlar', image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=800&q=75&auto=format&fit=crop', slug: 'aksesuar' }
 ]
 
 const PROCESS_STEPS = [
@@ -200,65 +199,20 @@ export default function Home() {
   }, [pathname])
 
   useEffect(() => {
-    const loadSliders = async () => {
-      try {
-        setLoadingSliders(true)
-        const response = await slidersApi.getSliders(10)
-        
-        if (response.success && response.data && response.data.length > 0) {
-          const apiSlides = response.data.map((slider: any) => ({
-            id: slider.id,
-            title: slider.title || '',
-            description: slider.description || '',
-            imageUrl: slider.imageUrl || '',
-            thumbnailUrl: slider.thumbnailUrl,
-            videoUrl: slider.videoUrl,
-            highlight: slider.highlight || slider.title,
-            isActive: slider.isActive,
-            order: slider.order || 0,
-            autoPlay: slider.autoPlay !== undefined ? slider.autoPlay : true,
-            duration: slider.duration || 5,
-            clickAction: slider.clickAction,
-            buttonText: slider.buttonText,
-            buttonColor: slider.buttonColor,
-            textColor: slider.textColor,
-            overlayOpacity: slider.overlayOpacity,
-          }))
-          setSlides(apiSlides)
-        } else {
-          const hardcodedSlides = SLIDES.map((slide, index) => ({
-            id: index + 1,
-            title: slide.title,
-            description: slide.description,
-            imageUrl: slide.image,
-            highlight: slide.highlight,
-            isActive: true,
-            order: index + 1,
-            autoPlay: true,
-            duration: 5,
-          }))
-          setSlides(hardcodedSlides as SliderItem[])
-        }
-      } catch (error) {
-        console.error('Slider yükleme hatası:', error)
-        const hardcodedSlides = SLIDES.map((slide, index) => ({
-          id: index + 1,
-          title: slide.title,
-          description: slide.description,
-          imageUrl: slide.image,
-          highlight: slide.highlight,
-          isActive: true,
-          order: index + 1,
-          autoPlay: true,
-          duration: 5,
-        }))
-        setSlides(hardcodedSlides as SliderItem[])
-      } finally {
-        setLoadingSliders(false)
-      }
-    }
-    
-    loadSliders()
+    // Slider'ları direkt hardcoded verilerden yükle (API kullanmadan)
+    const hardcodedSlides = SLIDES.map((slide, index) => ({
+      id: index + 1,
+      title: slide.title,
+      description: slide.description,
+      imageUrl: slide.image,
+      highlight: slide.highlight,
+      isActive: true,
+      order: index + 1,
+      autoPlay: true,
+      duration: 5,
+    }))
+    setSlides(hardcodedSlides as SliderItem[])
+    setLoadingSliders(false)
   }, [])
 
   // Load categories from API if available
@@ -562,8 +516,8 @@ export default function Home() {
               <div className="relative">
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                   <Image
-                    src="https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=1200&q=75"
-                    alt="Huğlu Tekstil Hakkında"
+                    src="https://images.unsplash.com/photo-1675176785803-bffbbb0cd2f4?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                    alt="Huğlu Tekstil - Tekstil Üretimi ve Outdoor Giyim"
                     width={800}
                     height={600}
                     className="w-full h-auto object-cover"

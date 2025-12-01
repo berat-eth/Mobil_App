@@ -56,6 +56,7 @@ export default function HepsiburadaOrders() {
   const [selectedOrder, setSelectedOrder] = useState<MarketplaceOrder | null>(null)
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null)
   const [invoiceLink, setInvoiceLink] = useState<string>('')
+  const [invoiceSearchQuery, setInvoiceSearchQuery] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [startDate, setStartDate] = useState('')
@@ -164,14 +165,29 @@ export default function HepsiburadaOrders() {
     setShowOrderDetailModal(true)
     setSelectedInvoiceId(null)
     setInvoiceLink('')
+    setInvoiceSearchQuery('')
     
     // Faturaları yükle
     try {
       const response = await api.get<ApiResponse<any[]>>('/admin/invoices')
       if (response.success && response.data && response.data.length > 0) {
         setInvoices(response.data)
-        // İlk faturayı varsayılan olarak seç
-        setSelectedInvoiceId(response.data[0].id)
+        // Müşteri adına göre otomatik eşleştirme
+        const customerName = order.customerName?.toLowerCase().trim() || ''
+        if (customerName) {
+          const matchedInvoice = response.data.find((inv: any) => {
+            const invoiceCustomerName = inv.customerName?.toLowerCase().trim() || ''
+            return invoiceCustomerName && invoiceCustomerName === customerName
+          })
+          
+          if (matchedInvoice) {
+            setSelectedInvoiceId(matchedInvoice.id)
+          } else {
+            setSelectedInvoiceId(response.data[0].id)
+          }
+        } else {
+          setSelectedInvoiceId(response.data[0].id)
+        }
       }
     } catch (err: any) {
       console.error('Faturalar yüklenemedi:', err)
@@ -301,15 +317,45 @@ export default function HepsiburadaOrders() {
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `kargo-fisi-${selectedOrder.externalOrderId}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
         
-        // Kargo fişi başarıyla indirildi, siparişleri yeniden yükle (veritabanından cargoSlipPrintedAt bilgisi gelecek)
+        // Müşteri adını dosya adı için hazırla (özel karakterleri temizle)
+        const customerName = selectedOrder.customerName || 'Musteri'
+        const sanitizedCustomerName = customerName
+          .replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\s]/g, '') // Özel karakterleri temizle
+          .replace(/\s+/g, '_') // Boşlukları alt çizgi ile değiştir
+          .substring(0, 50) // Maksimum 50 karakter
+        const fileName = `kargo-fisi-${sanitizedCustomerName}-${selectedOrder.externalOrderId}.pdf`
+        
+        // PDF'i yeni pencerede aç ve yazdır
+        const printWindow = window.open(url, '_blank')
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print()
+            // Yazdırma işlemi tamamlandıktan sonra indirme seçeneği sun
+            setTimeout(() => {
+              if (confirm('Kargo fişi yazdırıldı. Dosyayı indirmek ister misiniz?')) {
+                const a = document.createElement('a')
+                a.href = url
+                a.download = fileName
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+              }
+              window.URL.revokeObjectURL(url)
+            }, 1000)
+          }
+        } else {
+          // Popup engellendi, direkt indir
+          const a = document.createElement('a')
+          a.href = url
+          a.download = fileName
+          document.body.appendChild(a)
+          a.click()
+          window.URL.revokeObjectURL(url)
+          document.body.removeChild(a)
+        }
+        
+        // Kargo fişi başarıyla oluşturuldu, siparişleri yeniden yükle (veritabanından cargoSlipPrintedAt bilgisi gelecek)
         await loadOrders()
       } else {
         const errorText = await response.text()
@@ -1048,36 +1094,82 @@ export default function HepsiburadaOrders() {
                         )}
                       </div>
                       
+                      {/* Fatura Arama */}
+                      {invoices.length > 0 && (
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Fatura Ara
+                          </label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                              type="text"
+                              value={invoiceSearchQuery}
+                              onChange={(e) => setInvoiceSearchQuery(e.target.value)}
+                              placeholder="Fatura numarası, müşteri adı veya dosya adı ile ara..."
+                              disabled={!!(invoiceLink && invoiceLink.trim())}
+                              className={`w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                invoiceLink && invoiceLink.trim() 
+                                  ? 'opacity-50 cursor-not-allowed' 
+                                  : ''
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Fatura Seçimi - Link girildiğinde devre dışı */}
                       {invoices.length > 0 && (
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Kargo Fişi için Fatura Seçimi
                           </label>
-                          <select
-                            value={selectedInvoiceId || ''}
-                            onChange={(e) => {
-                              setSelectedInvoiceId(Number(e.target.value))
-                              if (e.target.value) {
-                                setInvoiceLink('')
-                              }
-                            }}
-                            disabled={!!(invoiceLink && invoiceLink.trim())}
-                            className={`w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                              invoiceLink && invoiceLink.trim() 
-                                ? 'opacity-50 cursor-not-allowed' 
-                                : ''
-                            }`}
-                          >
-                            <option value="">Fatura Seçiniz</option>
-                            {invoices.map((invoice) => (
-                              <option key={invoice.id} value={invoice.id}>
-                                {invoice.invoiceNumber || `Fatura #${invoice.id}`} 
-                                {invoice.fileName && ` - ${fixInvoiceFileName(invoice.fileName)}`}
-                                {invoice.totalAmount && ` (${formatTurkishNumber(invoice.totalAmount)} ${invoice.currency || 'TRY'})`}
-                              </option>
-                            ))}
-                          </select>
+                          {(() => {
+                            // Faturaları arama sorgusuna göre filtrele
+                            const filteredInvoices = invoices.filter((invoice: any) => {
+                              if (!invoiceSearchQuery.trim()) return true
+                              const query = invoiceSearchQuery.toLowerCase().trim()
+                              const invoiceNumber = (invoice.invoiceNumber || `Fatura #${invoice.id}`).toLowerCase()
+                              const customerName = (invoice.customerName || '').toLowerCase()
+                              const fileName = fixInvoiceFileName(invoice.fileName || '').toLowerCase()
+                              
+                              return invoiceNumber.includes(query) || 
+                                     customerName.includes(query) || 
+                                     fileName.includes(query)
+                            })
+                            
+                            return (
+                              <select
+                                value={selectedInvoiceId || ''}
+                                onChange={(e) => {
+                                  setSelectedInvoiceId(Number(e.target.value))
+                                  if (e.target.value) {
+                                    setInvoiceLink('')
+                                  }
+                                }}
+                                disabled={!!(invoiceLink && invoiceLink.trim())}
+                                className={`w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                  invoiceLink && invoiceLink.trim() 
+                                    ? 'opacity-50 cursor-not-allowed' 
+                                    : ''
+                                }`}
+                              >
+                                <option value="">Fatura Seçiniz</option>
+                                {filteredInvoices.length === 0 ? (
+                                  <option value="" disabled>Fatura bulunamadı</option>
+                                ) : (
+                                  filteredInvoices.map((invoice) => (
+                                    <option key={invoice.id} value={invoice.id}>
+                                      {invoice.invoiceNumber || `Fatura #${invoice.id}`} 
+                                      {invoice.customerName && ` - ${invoice.customerName}`}
+                                      {invoice.fileName && ` - ${fixInvoiceFileName(invoice.fileName)}`}
+                                      {invoice.totalAmount && ` (${formatTurkishNumber(invoice.totalAmount)} ${invoice.currency || 'TRY'})`}
+                                    </option>
+                                  ))
+                                )}
+                              </select>
+                            )
+                          })()}
                           {selectedInvoiceId && !invoiceLink && (
                             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                               Seçili fatura kargo fişindeki QR kodda kullanılacak

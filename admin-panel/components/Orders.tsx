@@ -266,19 +266,48 @@ export default function Orders() {
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `kargo-fisi-${selectedOrderForCargoSlip.id}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
         
-        // Kargo fişi başarıyla indirildi, siparişleri yeniden yükle
+        // Müşteri adını dosya adı için hazırla (özel karakterleri temizle)
+        const customerName = (selectedOrderForCargoSlip as any).userName || (selectedOrderForCargoSlip as any).customerName || 'Musteri'
+        const sanitizedCustomerName = customerName
+          .replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\s]/g, '') // Özel karakterleri temizle
+          .replace(/\s+/g, '_') // Boşlukları alt çizgi ile değiştir
+          .substring(0, 50) // Maksimum 50 karakter
+        const fileName = `kargo-fisi-${sanitizedCustomerName}-${selectedOrderForCargoSlip.id}.pdf`
+        
+        // PDF'i yeni pencerede aç ve yazdır
+        const printWindow = window.open(url, '_blank')
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print()
+            // Yazdırma işlemi tamamlandıktan sonra indirme seçeneği sun
+            setTimeout(() => {
+              if (confirm('Kargo fişi yazdırıldı. Dosyayı indirmek ister misiniz?')) {
+                const a = document.createElement('a')
+                a.href = url
+                a.download = fileName
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+              }
+              window.URL.revokeObjectURL(url)
+            }, 1000)
+          }
+        } else {
+          // Popup engellendi, direkt indir
+          const a = document.createElement('a')
+          a.href = url
+          a.download = fileName
+          document.body.appendChild(a)
+          a.click()
+          window.URL.revokeObjectURL(url)
+          document.body.removeChild(a)
+        }
+        
+        // Kargo fişi başarıyla oluşturuldu, siparişleri yeniden yükle
         await reloadOrders()
         setShowCargoSlipModal(false)
         setSelectedOrderForCargoSlip(null)
-        alert('✅ Kargo fişi başarıyla oluşturuldu ve indirildi!')
       } else {
         const errorText = await response.text()
         let errorMessage = 'Bilinmeyen hata'

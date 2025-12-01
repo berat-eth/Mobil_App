@@ -60,6 +60,7 @@ export default function TicimaxOrders() {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null)
   const [invoiceLink, setInvoiceLink] = useState<string>('')
   const [referenceNumber, setReferenceNumber] = useState<string>('')
+  const [invoiceSearchQuery, setInvoiceSearchQuery] = useState<string>('')
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -240,6 +241,7 @@ export default function TicimaxOrders() {
     setInvoiceLink('')
     setReferenceNumber('')
     setSelectedInvoiceId(null)
+    setInvoiceSearchQuery('')
   }
 
   // Faturaları yükle (hem modal hem de otomatik yükleme için)
@@ -249,8 +251,28 @@ export default function TicimaxOrders() {
       const response = await api.get<ApiResponse<any[]>>('/admin/invoices')
       if (response.success && response.data) {
         setInvoices(response.data)
-        // İlk faturayı varsayılan olarak seç (sadece daha önce seçilmemişse)
-        if (response.data.length > 0 && !selectedInvoiceId) {
+        // Müşteri adına göre otomatik eşleştirme
+        if (selectedOrder && response.data.length > 0) {
+          const customerName = selectedOrder.customerName?.toLowerCase().trim() || ''
+          if (customerName) {
+            // Müşteri adına göre eşleşen faturayı bul
+            const matchedInvoice = response.data.find((inv: any) => {
+              const invoiceCustomerName = inv.customerName?.toLowerCase().trim() || ''
+              return invoiceCustomerName && invoiceCustomerName === customerName
+            })
+            
+            if (matchedInvoice) {
+              setSelectedInvoiceId(matchedInvoice.id)
+            } else if (!selectedInvoiceId && response.data.length > 0) {
+              // Eşleşme yoksa ilk faturayı seç
+              setSelectedInvoiceId(response.data[0].id)
+            }
+          } else if (!selectedInvoiceId && response.data.length > 0) {
+            // Müşteri adı yoksa ilk faturayı seç
+            setSelectedInvoiceId(response.data[0].id)
+          }
+        } else if (response.data.length > 0 && !selectedInvoiceId) {
+          // Sipariş seçili değilse ilk faturayı seç
           setSelectedInvoiceId(response.data[0].id)
         }
       }
@@ -348,15 +370,45 @@ export default function TicimaxOrders() {
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `kargo-fisi-ticimax-${selectedOrder.orderNumber || selectedOrder.externalOrderId}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
         
-        // Kargo fişi başarıyla indirildi, siparişleri yeniden yükle
+        // Müşteri adını dosya adı için hazırla (özel karakterleri temizle)
+        const customerName = selectedOrder.customerName || 'Musteri'
+        const sanitizedCustomerName = customerName
+          .replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\s]/g, '') // Özel karakterleri temizle
+          .replace(/\s+/g, '_') // Boşlukları alt çizgi ile değiştir
+          .substring(0, 50) // Maksimum 50 karakter
+        const fileName = `kargo-fisi-${sanitizedCustomerName}-${selectedOrder.orderNumber || selectedOrder.externalOrderId}.pdf`
+        
+        // PDF'i yeni pencerede aç ve yazdır
+        const printWindow = window.open(url, '_blank')
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print()
+            // Yazdırma işlemi tamamlandıktan sonra indirme seçeneği sun
+            setTimeout(() => {
+              if (confirm('Kargo fişi yazdırıldı. Dosyayı indirmek ister misiniz?')) {
+                const a = document.createElement('a')
+                a.href = url
+                a.download = fileName
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+              }
+              window.URL.revokeObjectURL(url)
+            }, 1000)
+          }
+        } else {
+          // Popup engellendi, direkt indir
+          const a = document.createElement('a')
+          a.href = url
+          a.download = fileName
+          document.body.appendChild(a)
+          a.click()
+          window.URL.revokeObjectURL(url)
+          document.body.removeChild(a)
+        }
+        
+        // Kargo fişi başarıyla oluşturuldu, siparişleri yeniden yükle
         await loadOrders()
       } else {
         const errorText = await response.text()
@@ -775,6 +827,28 @@ export default function TicimaxOrders() {
                       )}
                     </div>
                     
+                    {/* Fatura Arama */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Fatura Ara
+                      </label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          value={invoiceSearchQuery}
+                          onChange={(e) => setInvoiceSearchQuery(e.target.value)}
+                          placeholder="Fatura numarası, müşteri adı veya dosya adı ile ara..."
+                          disabled={!!(invoiceLink && invoiceLink.trim())}
+                          className={`w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            invoiceLink && invoiceLink.trim() 
+                              ? 'opacity-50 cursor-not-allowed' 
+                              : ''
+                          }`}
+                        />
+                      </div>
+                    </div>
+                    
                     {/* Fatura Seçimi - Link girildiğinde devre dışı */}
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -785,36 +859,52 @@ export default function TicimaxOrders() {
                           <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                           <span className="text-sm text-slate-600 dark:text-slate-400">Faturalar yükleniyor...</span>
                         </div>
-                      ) : (
-                        <select
-                          value={selectedInvoiceId || ''}
-                          onChange={(e) => {
-                            setSelectedInvoiceId(e.target.value ? Number(e.target.value) : null)
-                            if (e.target.value) {
-                              setInvoiceLink('')
-                            }
-                          }}
-                          disabled={!!(invoiceLink && invoiceLink.trim())}
-                          className={`w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                            invoiceLink && invoiceLink.trim() 
-                              ? 'opacity-50 cursor-not-allowed' 
-                              : ''
-                          }`}
-                        >
-                          <option value="">Fatura Seçiniz</option>
-                          {invoices.length === 0 ? (
-                            <option value="" disabled>Fatura bulunamadı</option>
-                          ) : (
-                            invoices.map((invoice) => (
-                              <option key={invoice.id} value={invoice.id}>
-                                {invoice.invoiceNumber || `Fatura #${invoice.id}`} 
-                                {invoice.fileName && ` - ${fixInvoiceFileName(invoice.fileName)}`}
-                                {invoice.totalAmount && ` (${Number(invoice.totalAmount).toFixed(2)} ${invoice.currency || 'TRY'})`}
-                              </option>
-                            ))
-                          )}
-                        </select>
-                      )}
+                      ) : (() => {
+                        // Faturaları arama sorgusuna göre filtrele
+                        const filteredInvoices = invoices.filter((invoice: any) => {
+                          if (!invoiceSearchQuery.trim()) return true
+                          const query = invoiceSearchQuery.toLowerCase().trim()
+                          const invoiceNumber = (invoice.invoiceNumber || `Fatura #${invoice.id}`).toLowerCase()
+                          const customerName = (invoice.customerName || '').toLowerCase()
+                          const fileName = fixInvoiceFileName(invoice.fileName || '').toLowerCase()
+                          
+                          return invoiceNumber.includes(query) || 
+                                 customerName.includes(query) || 
+                                 fileName.includes(query)
+                        })
+                        
+                        return (
+                          <select
+                            value={selectedInvoiceId || ''}
+                            onChange={(e) => {
+                              setSelectedInvoiceId(e.target.value ? Number(e.target.value) : null)
+                              if (e.target.value) {
+                                setInvoiceLink('')
+                              }
+                            }}
+                            disabled={!!(invoiceLink && invoiceLink.trim())}
+                            className={`w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                              invoiceLink && invoiceLink.trim() 
+                                ? 'opacity-50 cursor-not-allowed' 
+                                : ''
+                            }`}
+                          >
+                            <option value="">Fatura Seçiniz</option>
+                            {filteredInvoices.length === 0 ? (
+                              <option value="" disabled>Fatura bulunamadı</option>
+                            ) : (
+                              filteredInvoices.map((invoice) => (
+                                <option key={invoice.id} value={invoice.id}>
+                                  {invoice.invoiceNumber || `Fatura #${invoice.id}`} 
+                                  {invoice.customerName && ` - ${invoice.customerName}`}
+                                  {invoice.fileName && ` - ${fixInvoiceFileName(invoice.fileName)}`}
+                                  {invoice.totalAmount && ` (${Number(invoice.totalAmount).toFixed(2)} ${invoice.currency || 'TRY'})`}
+                                </option>
+                              ))
+                            )}
+                          </select>
+                        )
+                      })()}
                       {selectedInvoiceId && !invoiceLink && !invoicesLoading && (
                         <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                           Seçili fatura kargo fişindeki QR kodda kullanılacak

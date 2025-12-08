@@ -85,7 +85,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
       try {
         const user = await UserController.getCurrentUser();
         if (mounted) setIsAuthenticated(!!user);
-      } catch {}
+      } catch { }
     })();
     return () => { mounted = false };
   }, []);
@@ -169,33 +169,33 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
       console.log('🚀 HomeScreen init started');
       // ✅ OPTIMIZASYON: Tüm yükleme işlemlerini paralel başlat
       console.log('📊 Calling loadData, loadFavorites, loadSliders, loadFlashDeals in parallel...');
-      
+
       // İlk yükleme - flash deals dahil
       Promise.allSettled([
         loadData(),
         loadFavorites(),
         loadSliders(),
         loadFlashDeals()
-      ]).catch(() => {});
-      
+      ]).catch(() => { });
+
       restoreCountdownAndStart();
       console.log('✅ HomeScreen init completed');
     };
     const cleanupSlider = setupSliderTimer();
     init();
-    
+
     // Flash deals'ı 4 dakikada bir çek
     const flashDealsInterval = setInterval(() => {
       console.log('⏰ 4 dakika geçti, flash deals yenileniyor...');
       loadFlashDeals();
     }, 4 * 60 * 1000); // 4 dakika
-    
+
     return () => {
       cleanupSlider();
       clearInterval(flashDealsInterval);
       // Persist current countdown on unmount
-      AsyncStorage.setItem(COUNTDOWN_STORAGE_KEY, String(countdownTimer)).catch(() => {});
-      AsyncStorage.setItem(COUNTDOWN_SAVED_AT_KEY, String(Date.now())).catch(() => {});
+      AsyncStorage.setItem(COUNTDOWN_STORAGE_KEY, String(countdownTimer)).catch(() => { });
+      AsyncStorage.setItem(COUNTDOWN_SAVED_AT_KEY, String(Date.now())).catch(() => { });
       stopCountdownTimer(); // Cleanup'ta timer'ı durdur
       if (nowIntervalRef.current) {
         clearInterval(nowIntervalRef.current);
@@ -216,9 +216,9 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   }, [currentSlide]);
 
   const setupSliderTimer = () => {
-    if (sliderData.length === 0) return () => {};
+    if (sliderData.length === 0) return () => { };
     const timer = setInterval(() => {
-        setCurrentSlide((prev: number) => (prev + 1) % sliderData.length);
+      setCurrentSlide((prev: number) => (prev + 1) % sliderData.length);
     }, 4000);
     return () => clearInterval(timer);
   };
@@ -226,7 +226,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // ✅ OPTIMIZASYON: Kullanıcı kontrolünü önce yap
       const isLoggedIn = await UserController.isLoggedIn();
       const userId = isLoggedIn ? await UserController.getCurrentUserId() : null;
@@ -280,8 +280,8 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             6
           );
           const polarProducts = allProducts
-            .filter(product => 
-              product.category === 'Polar Bere' || 
+            .filter(product =>
+              product.category === 'Polar Bere' ||
               product.name.toLowerCase().includes('polar') ||
               product.name.toLowerCase().includes('hırka')
             )
@@ -352,7 +352,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
           shuffled = [...allProducts].sort(() => Math.random() - 0.5);
         }
         const randomProducts = getUniqueProducts(shuffled, newProducts, 6);
-        
+
         setPopularProducts(randomProducts);
         setPopularProductsCounter((prev: number) => prev + 1);
         // Timer'ı sıfırla
@@ -362,7 +362,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
         try {
           await AsyncStorage.setItem(COUNTDOWN_STORAGE_KEY, String(reset));
           await AsyncStorage.setItem(COUNTDOWN_SAVED_AT_KEY, String(Date.now()));
-        } catch {}
+        } catch { }
       }
     } catch (error) {
       console.error('Error refreshing popular products:', error);
@@ -405,8 +405,8 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
       setCountdownTimer((prev: number) => {
         const next = prev <= 1 ? 20 * 60 : prev - 1;
         // Persist on every tick
-        AsyncStorage.setItem(COUNTDOWN_STORAGE_KEY, String(next)).catch(() => {});
-        AsyncStorage.setItem(COUNTDOWN_SAVED_AT_KEY, String(Date.now())).catch(() => {});
+        AsyncStorage.setItem(COUNTDOWN_STORAGE_KEY, String(next)).catch(() => { });
+        AsyncStorage.setItem(COUNTDOWN_SAVED_AT_KEY, String(Date.now())).catch(() => { });
         if (prev <= 1) {
           // Timer bitti, popüler ürünleri yenile
           refreshPopularProducts();
@@ -509,9 +509,9 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
 
         Alert.alert('Başarılı', result.message, [
           { text: 'Tamam' },
-          { 
-            text: 'Sepete Git', 
-            onPress: () => navigation.navigate('Cart') 
+          {
+            text: 'Sepete Git',
+            onPress: () => navigation.navigate('Cart')
           }
         ]);
       } else {
@@ -546,9 +546,9 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
 
         Alert.alert('Başarılı', result.message, [
           { text: 'Tamam' },
-          { 
-            text: 'Sepete Git', 
-            onPress: () => navigation.navigate('Cart') 
+          {
+            text: 'Sepete Git',
+            onPress: () => navigation.navigate('Cart')
           }
         ]);
       } else {
@@ -570,7 +570,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
     try {
       const userId = await UserController.getCurrentUserId(); // Get current user ID
       const isFavorite = favoriteProducts.includes(product.id);
-      
+
       if (isFavorite) {
         const success = await UserController.removeFromFavorites(userId, product.id);
         if (success) {
@@ -664,70 +664,70 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const renderHeroSlider = () => {
     if (sliderData.length === 0) return null;
     return (
-    <View style={styles.sliderContainer}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(event: any) => {
-          const slide = Math.round(event.nativeEvent.contentOffset.x / width);
-          setCurrentSlide(slide);
-        }}
-        scrollEventThrottle={16}
-      >
-        {sliderData.map((slide: AdminSliderItem) => (
-          <View key={`slide-${slide.id}`} style={styles.slide}>
-            <Image source={{ uri: slide.imageUrl }} style={styles.slideImage} />
-            <LinearGradient
-              colors={['transparent', `rgba(0,0,0,${slide.overlayOpacity || 0.8})`]}
-              style={styles.slideOverlay}
-            >
-              <View style={styles.slideContent}>
-                <Text style={styles.slideTitle}>{slide.title}</Text>
-                {slide.description && (
-                  <Text style={styles.slideDescription}>{slide.description}</Text>
-                )}
-                {slide.buttonText && (
-                  <ModernButton
-                    title={slide.buttonText}
-                    onPress={() => {
-                      
-                      if (slide.clickAction?.type === 'product' && slide.clickAction.value) {
-                        navigation.navigate('ProductDetail', { productId: parseInt(slide.clickAction.value) });
-                      } else if (slide.clickAction?.type === 'category' && slide.clickAction.value) {
-                        navigation.navigate('ProductList', { category: slide.clickAction.value });
-                      } else if (slide.clickAction?.type === 'url' && slide.clickAction.value) {
-                        Linking.openURL(slide.clickAction.value);
-                      } else {
-                        navigation.navigate('ProductList');
-                      }
-                    }}
-                    variant="gradient"
-                    size="medium"
-                    style={{ 
-                      marginTop: Spacing.md,
-                      backgroundColor: slide.buttonColor || undefined,
-                    }}
-                  />
-                )}
-              </View>
-            </LinearGradient>
-          </View>
-        ))}
-      </ScrollView>
-      <View style={styles.pagination}>
-        {sliderData.map((_: any, index: number) => (
-          <View
-            key={`pagination-dot-${index}`}
-            style={[
-              styles.paginationDot,
-              currentSlide === index && styles.paginationDotActive,
-            ]}
-          />
-        ))}
+      <View style={styles.sliderContainer}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(event: any) => {
+            const slide = Math.round(event.nativeEvent.contentOffset.x / width);
+            setCurrentSlide(slide);
+          }}
+          scrollEventThrottle={16}
+        >
+          {sliderData.map((slide: AdminSliderItem) => (
+            <View key={`slide-${slide.id}`} style={styles.slide}>
+              <Image source={{ uri: slide.imageUrl }} style={styles.slideImage} />
+              <LinearGradient
+                colors={['transparent', `rgba(0,0,0,${slide.overlayOpacity || 0.8})`]}
+                style={styles.slideOverlay}
+              >
+                <View style={styles.slideContent}>
+                  <Text style={styles.slideTitle}>{slide.title}</Text>
+                  {slide.description && (
+                    <Text style={styles.slideDescription}>{slide.description}</Text>
+                  )}
+                  {slide.buttonText && (
+                    <ModernButton
+                      title={slide.buttonText}
+                      onPress={() => {
+
+                        if (slide.clickAction?.type === 'product' && slide.clickAction.value) {
+                          navigation.navigate('ProductDetail', { productId: parseInt(slide.clickAction.value) });
+                        } else if (slide.clickAction?.type === 'category' && slide.clickAction.value) {
+                          navigation.navigate('ProductList', { category: slide.clickAction.value });
+                        } else if (slide.clickAction?.type === 'url' && slide.clickAction.value) {
+                          Linking.openURL(slide.clickAction.value);
+                        } else {
+                          navigation.navigate('ProductList');
+                        }
+                      }}
+                      variant="gradient"
+                      size="medium"
+                      style={{
+                        marginTop: Spacing.md,
+                        backgroundColor: slide.buttonColor || undefined,
+                      }}
+                    />
+                  )}
+                </View>
+              </LinearGradient>
+            </View>
+          ))}
+        </ScrollView>
+        <View style={styles.pagination}>
+          {sliderData.map((_: any, index: number) => (
+            <View
+              key={`pagination-dot-${index}`}
+              style={[
+                styles.paginationDot,
+                currentSlide === index && styles.paginationDotActive,
+              ]}
+            />
+          ))}
+        </View>
       </View>
-    </View>
     );
   };
 
@@ -735,8 +735,8 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitleContainer}>
-          <Image 
-            source={require('../../assets/categories-icon.png')} 
+          <Image
+            source={require('../../assets/categories-icon.png')}
             style={styles.sectionIcon}
             resizeMode="contain"
           />
@@ -758,12 +758,12 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             if (!cat || typeof cat !== 'string') {
               return null;
             }
-            
+
             // Önce tam eşleşme ara
             if (categoryIcons[cat as keyof typeof categoryIcons]) {
               return categoryIcons[cat as keyof typeof categoryIcons];
             }
-            
+
             // Kısmi eşleşme ara
             const lowerCategory = cat.toLowerCase();
             for (const [key, icon] of Object.entries(categoryIcons)) {
@@ -771,7 +771,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                 return icon;
               }
             }
-            
+
             // Kategori türüne göre genel icon seç
             if (lowerCategory.includes('mont') || lowerCategory.includes('ceket') || lowerCategory.includes('jacket')) {
               return categoryIcons['Mont'];
@@ -794,7 +794,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             if (lowerCategory.includes('aksesuar') || lowerCategory.includes('accessory')) {
               return categoryIcons['Aksesuar'];
             }
-            
+
             return null;
           };
 
@@ -837,9 +837,9 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
       gradientBorder={false}
     >
       <View style={styles.productImageContainer}>
-        <Image 
-          source={{ uri: item.image || 'https://via.placeholder.com/300x300?text=No+Image' }} 
-          style={styles.productImage} 
+        <Image
+          source={{ uri: item.image || 'https://via.placeholder.com/300x300?text=No+Image' }}
+          style={styles.productImage}
         />
         {item.stock < 5 && item.stock > 0 && (
           <View style={styles.stockBadge}>
@@ -847,14 +847,14 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
           </View>
         )}
         {isAuthenticated && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.favoriteButton}
             onPress={() => handleToggleFavorite(item)}
           >
-            <Icon 
-              name={favoriteProducts.includes(item.id) ? "favorite" : "favorite-border"} 
-              size={20} 
-              color={favoriteProducts.includes(item.id) ? Colors.secondary : Colors.text} 
+            <Icon
+              name={favoriteProducts.includes(item.id) ? "favorite" : "favorite-border"}
+              size={20}
+              color={favoriteProducts.includes(item.id) ? Colors.secondary : Colors.text}
             />
           </TouchableOpacity>
         )}
@@ -867,7 +867,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
         <Text style={styles.productName} numberOfLines={2}>
           {getTranslatedProductName(item, currentLanguage)}
         </Text>
-        
+
         {/* Beden bilgisi (varyasyonlu ürünler için) */}
         {item.hasVariations && item.variations && item.variations.length > 0 && (
           <View style={styles.sizeContainer}>
@@ -888,7 +888,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             </View>
           </View>
         )}
-        
+
         <View style={styles.productFooter}>
           <View>
             <Text style={styles.productPrice}>
@@ -903,7 +903,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
               </View>
             )}
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.addToCartButton}
             onPress={() => handleAddToCart(item)}
           >
@@ -916,6 +916,13 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
 
   const renderPopularProducts = useCallback(() => (
     <View style={styles.sectionContainer}>
+      <View style={styles.bannerWrapper}>
+        <Image
+          source={require('../../assets/banners/popüler_urunler.png')}
+          style={styles.sectionBanner}
+          contentFit="cover"
+        />
+      </View>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitleContainer}>
           <View>
@@ -958,6 +965,13 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
 
   const renderNewProducts = useCallback(() => (
     <View style={styles.sectionContainer}>
+      <View style={styles.bannerWrapper}>
+        <Image
+          source={require('../../assets/banners/yeni ürünler.png')}
+          style={styles.sectionBanner}
+          contentFit="cover"
+        />
+      </View>
       <View style={styles.sectionHeader}>
         <View>
           <Text style={styles.sectionTitle}>Yeni Ürünler</Text>
@@ -1049,10 +1063,10 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
 
   const renderFlashDeals = useCallback(() => {
     const now = nowTs;
-    
+
     // Flash deals API'sinden gelen tüm ürünleri topla
     const allFlashProducts: Product[] = [];
-    
+
     if (flashDeals && flashDeals.length > 0) {
       flashDeals.forEach((deal: FlashDeal) => {
         if (deal.products && Array.isArray(deal.products) && deal.products.length > 0) {
@@ -1063,17 +1077,17 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
               const discountType = deal.discount_type || 'percentage';
               const discountValue = deal.discount_value || 0;
               let discountedPrice = product.price;
-              
+
               if (discountType === 'percentage') {
                 discountedPrice = product.price * (1 - discountValue / 100);
               } else if (discountType === 'fixed') {
                 discountedPrice = Math.max(0, product.price - discountValue);
               }
-              
+
               // Bitiş zamanını hesapla
               const endDate = deal.end_date ? new Date(deal.end_date).getTime() : 0;
               const remainSec = Math.max(0, Math.floor((endDate - now) / 1000));
-              
+
               const productWithDiscount: Product = {
                 ...product,
                 id: product.id,
@@ -1094,23 +1108,30 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                 flashDealEndTime: remainSec,
                 flashDealName: deal.name
               } as Product;
-              
+
               allFlashProducts.push(productWithDiscount);
             }
           });
         }
       });
     }
-    
+
     if (allFlashProducts.length === 0) {
       return null;
     }
-    
+
     // İlk 5 ürünü göster
     const displayProducts = allFlashProducts.slice(0, 5);
-    
+
     return (
       <View style={styles.sectionContainer}>
+        <View style={styles.bannerWrapper}>
+          <Image
+            source={require('../../assets/banners/flash deals.png')}
+            style={styles.sectionBanner}
+            contentFit="cover"
+          />
+        </View>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
             <Icon name="flash-on" size={18} color={Colors.secondary} />
@@ -1133,12 +1154,12 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
           {displayProducts.map((item: Product, index: number) => {
             const flashDiscount = (item as any).flashDiscount;
             const remainSec = (item as any).flashDealEndTime || 0;
-            
+
             // flashDiscount'ı sayıya çevir ve kontrol et
-            const discountValue = typeof flashDiscount === 'number' 
-              ? flashDiscount 
+            const discountValue = typeof flashDiscount === 'number'
+              ? flashDiscount
               : (typeof flashDiscount === 'string' ? parseFloat(flashDiscount) : 0) || 0;
-            
+
             return (
               <ModernCard
                 key={`flash-product-${item.id}-${index}`}
@@ -1149,9 +1170,9 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                 gradientBorder={false}
               >
                 <View style={styles.productImageContainer}>
-                  <Image 
-                    source={{ uri: item.image || 'https://via.placeholder.com/300x300?text=No+Image' }} 
-                    style={styles.productImage} 
+                  <Image
+                    source={{ uri: item.image || 'https://via.placeholder.com/300x300?text=No+Image' }}
+                    style={styles.productImage}
                   />
                   {discountValue > 0 && (
                     <View style={styles.flashDiscountBadge}>
@@ -1164,14 +1185,14 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                     <Icon name="timer" size={12} color="white" />
                     <Text style={styles.flashTimerText}>{formatHMS(remainSec)}</Text>
                   </View>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.favoriteButton}
                     onPress={() => handleToggleFavorite(item)}
                   >
-                    <Icon 
-                      name={favoriteProducts.includes(item.id) ? "favorite" : "favorite-border"} 
-                      size={20} 
-                      color={favoriteProducts.includes(item.id) ? Colors.secondary : Colors.text} 
+                    <Icon
+                      name={favoriteProducts.includes(item.id) ? "favorite" : "favorite-border"}
+                      size={20}
+                      color={favoriteProducts.includes(item.id) ? Colors.secondary : Colors.text}
                     />
                   </TouchableOpacity>
                 </View>
@@ -1200,7 +1221,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                         </View>
                       )}
                     </View>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.addToCartButton}
                       onPress={() => handleAddToCart(item)}
                     >
@@ -1261,18 +1282,18 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                       <Text style={styles.modernOfferDescription} numberOfLines={2}>{offer.description}</Text>
                     </View>
                   </View>
-                  
+
                   {offer.discountAmount && (
                     <View style={styles.modernOfferDiscount}>
                       <Text style={styles.modernDiscountText}>
-                        {offer.discountType === 'percentage' 
+                        {offer.discountType === 'percentage'
                           ? `%${offer.discountAmount} İndirim`
                           : `${offer.discountAmount} TL İndirim`
                         }
                       </Text>
                     </View>
                   )}
-                  
+
                   <View style={styles.offerBadge}>
                     <Text style={styles.badgeText}>ÖZEL</Text>
                   </View>
@@ -1295,7 +1316,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      
+
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -1326,13 +1347,13 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
         {renderNewProducts()}
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
-      
+
       {/* Popup Manager */}
       <PopupManager navigation={navigation} />
-      
+
       {/* Chatbot */}
       <Chatbot navigation={navigation} />
-      
+
       {/* Varyasyon Modal */}
       <VariationModal
         visible={variationModalVisible}
@@ -1456,6 +1477,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
+  },
+  bannerWrapper: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  sectionBanner: {
+    width: '100%',
+    height: 140,
+    borderRadius: 14,
+    overflow: 'hidden',
   },
   sectionTitleContainer: {
     flexDirection: 'row',

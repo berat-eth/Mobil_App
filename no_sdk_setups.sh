@@ -292,6 +292,7 @@ deploy_updates() {
     if [ -d "$MAIN_DIR" ]; then
         cd $MAIN_DIR
         npm install
+        npm audit fix || npm audit fix --force || true
         npm run build
         if pm2 describe $MAIN_PM2_NAME &>/dev/null; then
             pm2 restart $MAIN_PM2_NAME || pm2 start ecosystem.config.js
@@ -307,6 +308,7 @@ deploy_updates() {
     if [ -d "$API_DIR" ]; then
         cd $API_DIR
         npm install --production
+        npm audit fix --production || npm audit fix --force --production || true
         if pm2 describe $API_PM2_NAME &>/dev/null; then
             pm2 restart $API_PM2_NAME || pm2 start server.js --name $API_PM2_NAME --time
         else
@@ -321,6 +323,7 @@ deploy_updates() {
     if [ -d "$ADMIN_DIR" ]; then
         cd $ADMIN_DIR
         npm install
+        npm audit fix || npm audit fix --force || true
         npm run build
         if pm2 describe $ADMIN_PM2_NAME &>/dev/null; then
             pm2 restart $ADMIN_PM2_NAME || PORT=$ADMIN_PORT pm2 start npm --name "$ADMIN_PM2_NAME" -- start

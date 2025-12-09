@@ -87,7 +87,8 @@ print_menu() {
     echo -e "  ${CYAN}2)${NC} Sadece Temel Servisleri Kur (Web, API, Admin, AI)"
     echo -e "  ${CYAN}3)${NC} Tüm Servisleri Yeniden Başlat"
     echo -e "  ${CYAN}4)${NC} Sistem Durumunu Görüntüle"
-    echo -e "  ${CYAN}5)${NC} Çıkış"
+    echo -e "  ${CYAN}5)${NC} Yazılım Güncellemelerini Dağıt (Deploy)"
+    echo -e "  ${CYAN}6)${NC} Çıkış"
     echo ""
 }
 
@@ -260,6 +261,99 @@ restart_all_services() {
             echo -e "${RED}Geçersiz seçenek!${NC}"
             ;;
     esac
+}
+
+# --------------------------
+# Deploy Latest Updates (Pull, Build, Restart)
+# --------------------------
+deploy_updates() {
+    clear
+    print_header "Yazılım Güncellemelerini Dağıtma"
+
+    if [ ! -d "/root/Mobil_App/.git" ]; then
+        echo -e "${RED}Repository bulunamadı. Önce kurulum yapın.${NC}"
+        return 1
+    fi
+
+    cd /root/Mobil_App
+
+    echo -e "${BLUE}Son değişiklikler çekiliyor...${NC}"
+    if git pull --rebase --autostash origin main; then
+        echo -e "${GREEN}Ana daldan güncellemeler çekildi.${NC}"
+    elif git pull --rebase --autostash origin master; then
+        echo -e "${GREEN}Master dalından güncellemeler çekildi.${NC}"
+    else
+        echo -e "${RED}Güncellemeler alınamadı. Lütfen ağı veya erişimi kontrol edin.${NC}"
+        return 1
+    fi
+
+    echo ""
+    echo -e "${BLUE}Ana site derleniyor...${NC}"
+    if [ -d "$MAIN_DIR" ]; then
+        cd $MAIN_DIR
+        npm install
+        npm run build
+        if pm2 describe $MAIN_PM2_NAME &>/dev/null; then
+            pm2 restart $MAIN_PM2_NAME || pm2 start ecosystem.config.js
+        else
+            pm2 start ecosystem.config.js
+        fi
+    else
+        echo -e "${YELLOW}Ana site dizini bulunamadı, atlandı.${NC}"
+    fi
+
+    echo ""
+    echo -e "${BLUE}API güncelleniyor...${NC}"
+    if [ -d "$API_DIR" ]; then
+        cd $API_DIR
+        npm install --production
+        if pm2 describe $API_PM2_NAME &>/dev/null; then
+            pm2 restart $API_PM2_NAME || pm2 start server.js --name $API_PM2_NAME --time
+        else
+            pm2 start server.js --name $API_PM2_NAME --time
+        fi
+    else
+        echo -e "${YELLOW}API dizini bulunamadı, atlandı.${NC}"
+    fi
+
+    echo ""
+    echo -e "${BLUE}Admin paneli güncelleniyor...${NC}"
+    if [ -d "$ADMIN_DIR" ]; then
+        cd $ADMIN_DIR
+        npm install
+        npm run build
+        if pm2 describe $ADMIN_PM2_NAME &>/dev/null; then
+            pm2 restart $ADMIN_PM2_NAME || PORT=$ADMIN_PORT pm2 start npm --name "$ADMIN_PM2_NAME" -- start
+        else
+            PORT=$ADMIN_PORT pm2 start npm --name "$ADMIN_PM2_NAME" -- start
+        fi
+    else
+        echo -e "${YELLOW}Admin dizini bulunamadı, atlandı.${NC}"
+    fi
+
+    echo ""
+    echo -e "${BLUE}AI servisi güncelleniyor...${NC}"
+    if [ -d "$AI_DIR" ]; then
+        cd $AI_DIR
+        if [ -f "requirements.txt" ]; then
+            pip3 install -r requirements.txt
+        fi
+        if pm2 describe $AI_PM2_NAME &>/dev/null; then
+            pm2 restart $AI_PM2_NAME || pm2 start ecosystem.config.js
+        else
+            pm2 start ecosystem.config.js
+        fi
+    else
+        echo -e "${YELLOW}AI servis dizini bulunamadı, atlandı.${NC}"
+    fi
+
+    pm2 save
+    echo ""
+    echo -e "${BLUE}Nginx yeniden yükleniyor...${NC}"
+    nginx -t && systemctl reload nginx
+
+    echo ""
+    echo -e "${GREEN}Güncellemeler dağıtıldı ve servisler yeniden başlatıldı.${NC}"
 }
 
 # --------------------------
@@ -799,7 +893,7 @@ core_installation() {
 main_menu() {
     while true; do
         print_menu
-        read -p "Bir seçenek seçin [1-5]: " choice
+        read -p "Bir seçenek seçin [1-6]: " choice
         
         case $choice in
             1)
@@ -819,11 +913,15 @@ main_menu() {
                 pause_screen
                 ;;
             5)
+                deploy_updates
+                pause_screen
+                ;;
+            6)
                 echo -e "${GREEN}Çıkılıyor...${NC}"
                 exit 0
                 ;;
             *)
-                echo -e "${RED}Geçersiz seçenek! Lütfen 1-5 arası seçin${NC}"
+                echo -e "${RED}Geçersiz seçenek! Lütfen 1-6 arası seçin${NC}"
                 pause_screen
                 ;;
         esac

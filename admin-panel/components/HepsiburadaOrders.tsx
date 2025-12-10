@@ -579,31 +579,19 @@ export default function HepsiburadaOrders() {
       // Paket numarası ve kalem numarası
       const packageNumber = row['Paket Numarası'] || ''
       const orderNumber = row['Sipariş Numarası'] || ''
-      const itemNumber = row['Kalem Numarası'] || ''
+      const itemNumber = row['Kalem Numarası']
       
-      // YENİ MANTIK: Her satır = Ayrı bir sipariş kaydı
-      // Sipariş Numarası + Kalem Numarası kombinasyonu benzersiz olmalı
-      // Eğer kalem numarası yoksa, sipariş numarası + satır index kullan
-      let groupKey = ''
+      // ÖNEMLİ: Paket numarası HER ZAMAN benzersiz olmalı!
+      // Hepsiburada'da her paket ayrı bir gönderidir, aynı sipariş numarası olsa bile
+      // Paket numarası yoksa, her satır için benzersiz bir ID oluştur
+      const groupKey = packageNumber || `csv-row-${i}-${Date.now()}-${Math.random()}`
       
-      if (orderNumber && itemNumber) {
-        // Sipariş numarası + Kalem numarası = Benzersiz anahtar
-        groupKey = `${orderNumber}-ITEM-${itemNumber}`
-      } else if (orderNumber) {
-        // Sadece sipariş numarası varsa, satır index ekle
-        groupKey = `${orderNumber}-ROW-${i}`
-      } else if (packageNumber) {
-        // Sipariş numarası yoksa paket numarasını kullan
-        groupKey = `PKG-${packageNumber}-ROW-${i}`
-      } else {
-        // Hiçbiri yoksa benzersiz ID oluştur
-        groupKey = `csv-row-${i}-${Date.now()}-${Math.random()}`
+      // Paket numarası yoksa uyarı ver (veri kalitesi için)
+      if (!packageNumber) {
+        console.warn(`⚠️ Satır ${i}: Paket numarası eksik, benzersiz ID oluşturuldu`)
       }
       
-      console.log(`📦 Satır ${i}: Sipariş=${orderNumber}, Kalem=${itemNumber}, Paket=${packageNumber}, GroupKey=${groupKey}`)
-      
-      // Her satır ayrı bir sipariş olacak, gruplama YOK
-      // Ama aynı groupKey varsa (teorik olarak olmamalı), item ekle
+      // Aynı paket numarasına sahip sipariş zaten varsa, sadece item ekle
       if (orderMap.has(groupKey)) {
         const existingOrder = orderMap.get(groupKey)
         if (!existingOrder.items) existingOrder.items = []
@@ -624,10 +612,13 @@ export default function HepsiburadaOrders() {
           category: row['Kategori'] || '',
         })
         
-        // Toplam tutarı güncelle (aynı groupKey'de birden fazla item varsa)
+        // Toplam tutarı güncelle
         existingOrder.totalAmount += parseTurkishNumber(row['Faturalandırılacak Satış Fiyatı'] || '0')
         
-        console.log(`⚠️ Aynı groupKey'de birden fazla satır bulundu: ${groupKey} - Bu normalinde olmamalı!`)
+        // Sipariş numarasını güncelle (aynı paket içinde sipariş numarası değişmemeli ama kontrol edelim)
+        if (orderNumber && existingOrder.externalOrderId !== orderNumber) {
+          console.warn(`⚠️ Aynı paket (${packageNumber}) içinde farklı sipariş numarası tespit edildi: ${existingOrder.externalOrderId} vs ${orderNumber}`)
+        }
       } else {
         // Yeni sipariş oluştur
         const orderDate = row['Sipariş Tarihi'] || ''
@@ -646,8 +637,8 @@ export default function HepsiburadaOrders() {
         }
         
         const order = {
-          externalOrderId: orderNumber || `CSV-ROW-${i}`, // Sipariş numarası
-          packageNumber: packageNumber || '', // Paket numarası (boş olabilir)
+          externalOrderId: orderNumber || `CSV-ROW-${i}`, // Sipariş numarası (paket numarası DEĞİL!)
+          packageNumber: packageNumber || `PKG-${i}-${Date.now()}`, // Paket numarası yoksa benzersiz ID
           customerName: row['Alıcı'] || '',
           customerEmail: row['Alıcı Mail Adresi'] || '',
           shippingAddress: row['Teslimat Adresi'] || '',

@@ -10770,43 +10770,6 @@ app.get('/api/admin/hepsiburada-orders', authenticateAdmin, async (req, res) => 
       // Hata olsa bile devam et
     }
 
-    // Veritabanında itemNumber sütununun var olup olmadığını kontrol et
-    try {
-      const [columns] = await poolWrapper.execute(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'hepsiburada_orders' 
-        AND COLUMN_NAME = 'itemNumber'
-      `);
-      
-      if (columns.length === 0) {
-        // itemNumber sütunu yoksa ekle
-        console.log('⚠️ itemNumber sütunu bulunamadı, ekleniyor...');
-        await poolWrapper.execute(`
-          ALTER TABLE hepsiburada_orders 
-          ADD COLUMN itemNumber VARCHAR(50) NULL AFTER packageNumber
-        `);
-        console.log('✅ itemNumber sütunu eklendi');
-        
-        // Unique constraint'i güncelle
-        console.log('⚠️ Unique constraint güncelleniyor...');
-        await poolWrapper.execute(`
-          ALTER TABLE hepsiburada_orders 
-          DROP INDEX unique_external_order
-        `).catch(() => console.log('ℹ️ unique_external_order index bulunamadı'));
-        
-        await poolWrapper.execute(`
-          ALTER TABLE hepsiburada_orders 
-          ADD UNIQUE KEY unique_hepsiburada_order (tenantId, externalOrderId, itemNumber)
-        `);
-        console.log('✅ Unique constraint güncellendi');
-      }
-    } catch (alterError) {
-      console.error('❌ itemNumber sütunu kontrolü/ekleme hatası:', alterError);
-      // Hata olsa bile devam et
-    }
-
     let whereClauses = ['tenantId = ?'];
     let params = [tenantId];
 

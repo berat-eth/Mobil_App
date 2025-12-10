@@ -786,6 +786,7 @@ async function createDatabaseSchema(pool) {
       tenantId INT NOT NULL,
       externalOrderId VARCHAR(255) NOT NULL,
       packageNumber VARCHAR(100),
+      itemNumber VARCHAR(50),
       totalAmount DECIMAL(10,2) NOT NULL,
       status VARCHAR(50) DEFAULT 'pending',
       shippingAddress TEXT NOT NULL,
@@ -812,9 +813,10 @@ async function createDatabaseSchema(pool) {
       createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (tenantId) REFERENCES tenants(id) ON DELETE CASCADE,
-      UNIQUE KEY unique_external_order (tenantId, externalOrderId),
+      UNIQUE KEY unique_hepsiburada_order (tenantId, externalOrderId, itemNumber),
       INDEX idx_tenant_hepsiburada (tenantId),
       INDEX idx_external_order_id (externalOrderId),
+      INDEX idx_package_number (packageNumber),
       INDEX idx_status (status),
       INDEX idx_created_at (createdAt)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

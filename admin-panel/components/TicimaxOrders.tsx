@@ -409,6 +409,10 @@ export default function TicimaxOrders() {
         }
         
         // Kargo fişi başarıyla oluşturuldu, siparişleri yeniden yükle
+        setOrders(prev => 
+          prev.map(o => o.id === selectedOrder.id ? { ...o, cargoSlipPrintedAt: new Date().toISOString() } : o)
+        )
+        setSelectedOrder(current => current ? { ...current, cargoSlipPrintedAt: new Date().toISOString() } : current)
         await loadOrders()
       } else {
         const errorText = await response.text()

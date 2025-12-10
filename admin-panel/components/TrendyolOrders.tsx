@@ -269,6 +269,7 @@ export default function TrendyolOrders() {
           invoiceUrl: invoiceUrl,
           cargoTrackingNumber: cargoTrackingNumber,
           cargoProviderName: cargoProviderName,
+          provider: 'trendyol',
           customerName: selectedOrder.customerName,
           customerEmail: selectedOrder.customerEmail,
           customerPhone: selectedOrder.customerPhone,
@@ -320,6 +321,12 @@ export default function TrendyolOrders() {
         setTimeout(async () => {
           await loadOrders()
         }, 1000)
+
+        // Kullanıcı deneyimi için hemen state'i güncelle (badge kalıcı görünsün)
+        setOrders(prev =>
+          prev.map(o => o.id === selectedOrder.id ? { ...o, cargoSlipPrintedAt: new Date().toISOString() } : o)
+        )
+        setSelectedOrder(current => current ? { ...current, cargoSlipPrintedAt: new Date().toISOString() } : current)
         
         // PDF'i yeni pencerede aç ve yazdır
         const printWindow = window.open(url, '_blank')

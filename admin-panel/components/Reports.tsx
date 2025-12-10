@@ -491,7 +491,17 @@ export default function Reports() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.3} />
-                <XAxis dataKey={(d) => CHANNEL_LABELS[d.channel]} stroke="#64748b" style={{ fontSize: '11px' }} angle={-15} textAnchor="end" height={60} />
+                <XAxis 
+                  dataKey={(d: any) => {
+                    const channel = d.channel as Channel
+                    return CHANNEL_LABELS[channel] || channel
+                  }} 
+                  stroke="#64748b" 
+                  style={{ fontSize: '11px' }} 
+                  angle={-15} 
+                  textAnchor="end" 
+                  height={60} 
+                />
                 <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
                 <Tooltip 
                   contentStyle={{ 

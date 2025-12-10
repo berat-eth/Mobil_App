@@ -90,7 +90,7 @@ export default function Reports() {
         if (channel !== 'all') params.append('channel', channel)
         if (status !== 'all') params.append('status', status)
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.huglutekstil.com'
         const endpoint = apiUrl.includes('/api') ? `${apiUrl}/admin/reports` : `${apiUrl}/api/admin/reports`
         const response = await fetch(`${endpoint}?${params}`, {
           headers: {

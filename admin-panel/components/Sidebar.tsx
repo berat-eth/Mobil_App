@@ -113,6 +113,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onToggle }: S
     {
       title: 'Analiz & Raporlama',
       items: [
+        { id: 'reports', label: 'Raporlar', icon: BarChart3 },
         { id: 'analytics', label: 'Detaylı Analitik', icon: BarChart3 },
         { id: 'live-data', label: 'Canlı Veriler', icon: Radio },
         { id: 'live-users', label: 'Canlı Kullanıcılar', icon: Eye },

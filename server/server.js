@@ -3845,6 +3845,64 @@ app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Admin - Reports: Get aggregated order data for reports
+app.get('/api/admin/reports', authenticateAdmin, async (req, res) => {
+  try {
+    const tenantId = req.tenant?.id || 1;
+    const { dateFrom = '', dateTo = '', channel = '', status = '' } = req.query;
+
+    // Build filters
+    const whereClauses = ['o.tenantId = ?'];
+    const params = [tenantId];
+    
+    if (dateFrom) {
+      whereClauses.push('DATE(o.createdAt) >= ?');
+      params.push(dateFrom);
+    }
+    if (dateTo) {
+      whereClauses.push('DATE(o.createdAt) <= ?');
+      params.push(dateTo);
+    }
+    if (channel && channel !== 'all') {
+      whereClauses.push('o.channel = ?');
+      params.push(channel);
+    }
+    if (status && status !== 'all') {
+      whereClauses.push('o.status = ?');
+      params.push(status);
+    }
+    
+    const whereSql = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
+
+    // Get all orders matching filters
+    const [orders] = await poolWrapper.execute(
+      `
+      SELECT 
+        o.id,
+        DATE(o.createdAt) as date,
+        o.channel,
+        o.status,
+        o.totalAmount as amount,
+        COALESCE(o.customerName, u.name) as customer,
+        o.cargoProvider,
+        o.cargoSlipPrintedAt
+      FROM orders o 
+      LEFT JOIN users u ON o.userId = u.id
+      ${whereSql}
+      ORDER BY o.createdAt DESC
+      `,
+      params
+    );
+
+    res.json({ success: true, data: orders });
+  } catch (error) {
+    console.error('❌ Error getting reports data:', error);
+    logError(error, 'GET_REPORTS');
+    const errorResponse = createSafeErrorResponse(error, 'Error getting reports data');
+    res.status(500).json(errorResponse);
+  }
+});
+
 // Admin - Snort IDS logs (reads from filesystem)
 app.get('/api/admin/snort/logs', authenticateAdmin, async (req, res) => {
   try {

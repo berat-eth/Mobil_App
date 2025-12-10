@@ -636,6 +636,33 @@ async function createDatabaseSchema(pool) {
           await pool.execute('ALTER TABLE orders ADD COLUMN paymentMeta JSON');
           console.log('✅ Added paymentMeta column to orders table');
       }
+
+      // Check for channel and cargoProvider columns
+      const [channelColumns] = await pool.execute(`
+    SELECT COLUMN_NAME 
+    FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = DATABASE() 
+    AND TABLE_NAME = 'orders'
+    AND COLUMN_NAME IN ('channel', 'cargoProvider', 'cargoSlipPrintedAt')
+  `);
+
+      const existingChannelColumns = channelColumns.map(col => col.COLUMN_NAME);
+
+      if (!existingChannelColumns.includes('channel')) {
+          await pool.execute('ALTER TABLE orders ADD COLUMN channel VARCHAR(50) DEFAULT "site"');
+          console.log('✅ Added channel column to orders table');
+      }
+
+      if (!existingChannelColumns.includes('cargoProvider')) {
+          await pool.execute('ALTER TABLE orders ADD COLUMN cargoProvider VARCHAR(100)');
+          console.log('✅ Added cargoProvider column to orders table');
+      }
+
+      if (!existingChannelColumns.includes('cargoSlipPrintedAt')) {
+          await pool.execute('ALTER TABLE orders ADD COLUMN cargoSlipPrintedAt TIMESTAMP NULL');
+          console.log('✅ Added cargoSlipPrintedAt column to orders table');
+      }
+
       console.log('✅ Orders table ready');
 
       // Order Items table

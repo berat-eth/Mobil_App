@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { 
   ShoppingCart, Search, Loader2, X, User, Mail, Phone, 
   Calendar, DollarSign, Package, MapPin, Code, FileJson, 
@@ -29,6 +29,7 @@ interface MarketplaceOrder {
   cargoTrackingNumber?: string
   cargoProviderName?: string
   barcode?: string
+  packageNumber?: string
   cargoSlipPrintedAt?: string
   items?: Array<{
     id: number
@@ -69,6 +70,29 @@ export default function HepsiburadaOrders() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [deletingOrderId, setDeletingOrderId] = useState<number | null>(null)
   // cargoSlipGenerated state'ini kaldırdık, artık backend'den gelecek
+
+  const duplicateOrderKeyMap = useMemo(() => {
+    const map = new Map<string, number>()
+    orders.forEach((order) => {
+      const customerKey = (order.customerEmail || order.customerName || '').toLowerCase().trim()
+      const key = `${order.externalOrderId || 'UNKNOWN'}__${customerKey || 'UNKNOWN'}`
+      map.set(key, (map.get(key) || 0) + 1)
+    })
+    return map
+  }, [orders])
+
+  const hasDuplicateOrderNumber = (order: MarketplaceOrder) => {
+    const customerKey = (order.customerEmail || order.customerName || '').toLowerCase().trim()
+    const key = `${order.externalOrderId || 'UNKNOWN'}__${customerKey || 'UNKNOWN'}`
+    return (duplicateOrderKeyMap.get(key) || 0) > 1
+  }
+
+  const getDisplayOrderId = (order: MarketplaceOrder) => {
+    if (hasDuplicateOrderNumber(order) && order.packageNumber) {
+      return order.packageNumber
+    }
+    return order.packageNumber || order.externalOrderId
+  }
 
   useEffect(() => {
     // Debounce: Filtre değişikliklerinde 500ms bekle
@@ -324,7 +348,8 @@ export default function HepsiburadaOrders() {
           .replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\s]/g, '') // Özel karakterleri temizle
           .replace(/\s+/g, '_') // Boşlukları alt çizgi ile değiştir
           .substring(0, 50) // Maksimum 50 karakter
-        const fileName = `kargo-fisi-${sanitizedCustomerName}-${selectedOrder.externalOrderId}.pdf`
+        const orderIdentifierForFile = getDisplayOrderId(selectedOrder)
+        const fileName = `kargo-fisi-${sanitizedCustomerName}-${orderIdentifierForFile}.pdf`
         
         // PDF'i yeni pencerede aç ve yazdır
         const printWindow = window.open(url, '_blank')
@@ -751,7 +776,8 @@ export default function HepsiburadaOrders() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       return (
-        order.externalOrderId.toLowerCase().includes(query) ||
+        (order.externalOrderId && order.externalOrderId.toLowerCase().includes(query)) ||
+        (order.packageNumber && order.packageNumber.toLowerCase().includes(query)) ||
         order.customerName?.toLowerCase().includes(query) ||
         order.customerEmail?.toLowerCase().includes(query)
       )
@@ -916,97 +942,117 @@ export default function HepsiburadaOrders() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {filteredOrders.map((order) => (
-              <motion.div
-                key={order.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 hover:shadow-lg transition-shadow"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div 
-                    className="flex-1 cursor-pointer"
-                    onClick={() => handleOrderClick(order)}
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                        🛒 {order.externalOrderId}
-                      </h3>
-                      <span className="px-2 py-1 rounded-full text-xs font-medium border bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700">
-                        Hepsiburada
-                      </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
-                        {getStatusLabel(order.status)}
-                      </span>
-                      {order.cargoSlipPrintedAt && (
-                        <span className="px-2 py-1 rounded-full text-xs font-medium border bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-300 dark:border-green-700 flex items-center gap-1">
-                          <Printer className="w-3 h-3" />
-                          Kargo Gişi Yazıldı
+            {filteredOrders.map((order) => {
+              const displayOrderId = getDisplayOrderId(order)
+              const usingPackageNumber = hasDuplicateOrderNumber(order) && order.packageNumber && displayOrderId === order.packageNumber
+
+              return (
+                <motion.div
+                  key={order.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div 
+                      className="flex-1 cursor-pointer"
+                      onClick={() => handleOrderClick(order)}
+                    >
+                      <div className="flex items-center gap-3 mb-1 flex-wrap">
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                          🛒 {displayOrderId}
+                        </h3>
+                        {order.packageNumber && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium border bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-300 dark:border-orange-700">
+                            Paket No: {order.packageNumber}
+                          </span>
+                        )}
+                        {usingPackageNumber && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium border bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700">
+                            Aynı sipariş numarası için paket numarası gösteriliyor
+                          </span>
+                        )}
+                        <span className="px-2 py-1 rounded-full text-xs font-medium border bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700">
+                          Hepsiburada
                         </span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      {order.customerName && (
-                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                          <User className="w-4 h-4" />
-                          <span>{order.customerName}</span>
-                        </div>
-                      )}
-                      {order.customerEmail && (
-                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                          <Mail className="w-4 h-4" />
-                          <span>{order.customerEmail}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                        <Calendar className="w-4 h-4" />
-                        <span>{new Date(order.createdAt || order.syncedAt || Date.now()).toLocaleDateString('tr-TR')}</span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+                          {getStatusLabel(order.status)}
+                        </span>
+                        {order.cargoSlipPrintedAt && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium border bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-300 dark:border-green-700 flex items-center gap-1">
+                            <Printer className="w-3 h-3" />
+                            Kargo Gişi Yazıldı
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
-                        <DollarSign className="w-4 h-4" />
-                        <span>{formatTurkishNumber(order.totalAmount || 0)} TRY</span>
-                      </div>
-                    </div>
-                    {order.items && order.items.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          Sipariş Öğeleri ({order.items.length})
+                      {order.externalOrderId && order.externalOrderId !== displayOrderId && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                          Sipariş No: {order.externalOrderId}
                         </p>
-                        <div className="space-y-2">
-                          {order.items.slice(0, 3).map((item, idx) => (
-                            <div key={item.id || `item-${order.id}-${idx}`} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                              <span>{item.productName}</span>
-                              <span className="text-slate-400">x{item.quantity}</span>
-                              <span className="ml-auto font-medium">{formatTurkishNumber(item.price || 0)} TRY</span>
-                            </div>
-                          ))}
-                          {order.items.length > 3 && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              +{order.items.length - 3} ürün daha
-                            </p>
-                          )}
+                      )}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        {order.customerName && (
+                          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                            <User className="w-4 h-4" />
+                            <span>{order.customerName}</span>
+                          </div>
+                        )}
+                        {order.customerEmail && (
+                          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                            <Mail className="w-4 h-4" />
+                            <span>{order.customerEmail}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                          <Calendar className="w-4 h-4" />
+                          <span>{new Date(order.createdAt || order.syncedAt || Date.now()).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+                          <DollarSign className="w-4 h-4" />
+                          <span>{formatTurkishNumber(order.totalAmount || 0)} TRY</span>
                         </div>
                       </div>
-                    )}
+                      {order.items && order.items.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Sipariş Öğeleri ({order.items.length})
+                          </p>
+                          <div className="space-y-2">
+                            {order.items.slice(0, 3).map((item, idx) => (
+                              <div key={item.id || `item-${order.id}-${idx}`} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                <span>{item.productName}</span>
+                                <span className="text-slate-400">x{item.quantity}</span>
+                                <span className="ml-auto font-medium">{formatTurkishNumber(item.price || 0)} TRY</span>
+                              </div>
+                            ))}
+                            {order.items.length > 3 && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                +{order.items.length - 3} ürün daha
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteOrder(order.id, displayOrderId)
+                      }}
+                      disabled={deletingOrderId === order.id}
+                      className="ml-4 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+                      title="Siparişi Sil"
+                    >
+                      {deletingOrderId === order.id ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-5 h-5" />
+                      )}
+                    </button>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteOrder(order.id, order.externalOrderId)
-                    }}
-                    disabled={deletingOrderId === order.id}
-                    className="ml-4 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
-                    title="Siparişi Sil"
-                  >
-                    {deletingOrderId === order.id ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              )
+            })}
           </div>
         )}
 
@@ -1028,7 +1074,16 @@ export default function HepsiburadaOrders() {
                         Sipariş Detayı
                       </h2>
                       <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                        🛒 Hepsiburada - {selectedOrder.externalOrderId}
+                        🛒 Hepsiburada - {getDisplayOrderId(selectedOrder)}
+                        {hasDuplicateOrderNumber(selectedOrder) && selectedOrder.packageNumber && (
+                          <span className="ml-2 text-xs px-2 py-1 rounded-full border bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700">
+                            Aynı sipariş numarası için paket numarası kullanılıyor
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Sipariş No: {selectedOrder.externalOrderId}
+                        {selectedOrder.packageNumber ? ` • Paket No: ${selectedOrder.packageNumber}` : ''}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1373,7 +1428,7 @@ export default function HepsiburadaOrders() {
                         JSON Verisi
                       </h2>
                       <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                        Sipariş: {selectedOrder.externalOrderId}
+                        Sipariş: {getDisplayOrderId(selectedOrder)}
                       </p>
                     </div>
                     <button

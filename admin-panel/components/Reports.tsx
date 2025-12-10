@@ -438,7 +438,10 @@ export default function Reports() {
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value, name, props) => [value, STATUS_LABELS[props.payload.status]]}
+                  formatter={(value: any, name: any, props: any) => {
+                    const status = props.payload?.status as Status
+                    return [value, STATUS_LABELS[status] || status]
+                  }}
                   contentStyle={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.95)', 
                     border: '1px solid #e2e8f0',

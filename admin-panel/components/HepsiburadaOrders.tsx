@@ -581,12 +581,15 @@ export default function HepsiburadaOrders() {
       const orderNumber = row['Sipariş Numarası'] || ''
       const itemNumber = row['Kalem Numarası']
       
-      // Paket numarası yoksa, sipariş numarasını kullan (fallback)
-      // Eğer ikisi de yoksa, satır numarası ile benzersiz bir ID oluştur (hiçbir sipariş atlanmasın)
-      const groupKey = packageNumber || orderNumber || `csv-row-${i}-${Date.now()}`
+      // ÖNEMLİ: Paket numarası HER ZAMAN benzersiz olmalı!
+      // Hepsiburada'da her paket ayrı bir gönderidir, aynı sipariş numarası olsa bile
+      // Paket numarası yoksa, her satır için benzersiz bir ID oluştur
+      const groupKey = packageNumber || `csv-row-${i}-${Date.now()}-${Math.random()}`
       
-      // Paket numarası ve sipariş numarası yoksa bile devam et (fallback ID ile)
-      // if (!packageNumber && !orderNumber) continue // KALDIRILDI - hiçbir sipariş atlanmasın
+      // Paket numarası yoksa uyarı ver (veri kalitesi için)
+      if (!packageNumber) {
+        console.warn(`⚠️ Satır ${i}: Paket numarası eksik, benzersiz ID oluşturuldu`)
+      }
       
       // Aynı paket numarasına sahip sipariş zaten varsa, sadece item ekle
       if (orderMap.has(groupKey)) {
@@ -612,9 +615,9 @@ export default function HepsiburadaOrders() {
         // Toplam tutarı güncelle
         existingOrder.totalAmount += parseTurkishNumber(row['Faturalandırılacak Satış Fiyatı'] || '0')
         
-        // Eğer farklı sipariş numaraları varsa, externalOrderId'yi birleştir
-        if (orderNumber && !existingOrder.externalOrderId.includes(orderNumber)) {
-          existingOrder.externalOrderId = `${existingOrder.externalOrderId}, ${orderNumber}`
+        // Sipariş numarasını güncelle (aynı paket içinde sipariş numarası değişmemeli ama kontrol edelim)
+        if (orderNumber && existingOrder.externalOrderId !== orderNumber) {
+          console.warn(`⚠️ Aynı paket (${packageNumber}) içinde farklı sipariş numarası tespit edildi: ${existingOrder.externalOrderId} vs ${orderNumber}`)
         }
       } else {
         // Yeni sipariş oluştur
@@ -634,8 +637,8 @@ export default function HepsiburadaOrders() {
         }
         
         const order = {
-          externalOrderId: orderNumber || packageNumber || `CSV-ROW-${i}`, // Sipariş numarası yoksa paket numarasını kullan, o da yoksa fallback ID
-          packageNumber: packageNumber,
+          externalOrderId: orderNumber || `CSV-ROW-${i}`, // Sipariş numarası (paket numarası DEĞİL!)
+          packageNumber: packageNumber || `PKG-${i}-${Date.now()}`, // Paket numarası yoksa benzersiz ID
           customerName: row['Alıcı'] || '',
           customerEmail: row['Alıcı Mail Adresi'] || '',
           shippingAddress: row['Teslimat Adresi'] || '',

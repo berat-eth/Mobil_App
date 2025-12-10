@@ -10410,13 +10410,14 @@ app.post('/api/admin/hepsiburada-orders/import', authenticateAdmin, async (req, 
           console.log(`⚠️ Paket numarası ve sipariş numarası eksik, fallback ID oluşturuldu: ${externalOrderId}`);
         }
 
-        // Mevcut siparişi kontrol et - ÖNCE paket numarasına göre kontrol et
-        // Çünkü aynı externalOrderId farklı paketlerde olabilir (farklı siparişler)
+        // ÖNEMLİ: Hepsiburada'da PAKET NUMARASI benzersiz tanımlayıcıdır!
+        // Aynı sipariş numarası (externalOrderId) farklı paketlerde olabilir
+        // Her paket = Ayrı bir kargo gönderisi = Ayrı bir sipariş kaydı
         let existingOrders = [];
         let foundByPackage = false;
         let foundByExternalId = false;
         
-        // ÖNCE paket numarasına göre kontrol et (paket numarası birincil öncelik)
+        // 1. ÖNCE paket numarasına göre kontrol et (paket numarası = birincil anahtar)
         if (packageNumber) {
           const [ordersByPackage] = await poolWrapper.execute(
             'SELECT id FROM hepsiburada_orders WHERE tenantId = ? AND packageNumber = ?',
@@ -10425,36 +10426,31 @@ app.post('/api/admin/hepsiburada-orders/import', authenticateAdmin, async (req, 
           if (ordersByPackage.length > 0) {
             existingOrders = ordersByPackage;
             foundByPackage = true;
+            console.log(`✅ Paket numarası ile mevcut sipariş bulundu: ${packageNumber}`);
           }
         }
         
-        // Eğer paket numarası ile bulunamadıysa, externalOrderId'ye göre kontrol et (unique constraint için)
-        // AMA sadece paket numarası yoksa veya aynı paket numarasına sahip değilse
+        // 2. Paket numarası yoksa veya bulunamadıysa, externalOrderId kontrol et
+        // ANCAK: Aynı externalOrderId farklı paketlerde olabilir, bu durumda YENİ sipariş oluştur!
         if (existingOrders.length === 0 && externalOrderId) {
           const [ordersByExternalId] = await poolWrapper.execute(
-            'SELECT id FROM hepsiburada_orders WHERE tenantId = ? AND externalOrderId = ?',
+            'SELECT id, packageNumber FROM hepsiburada_orders WHERE tenantId = ? AND externalOrderId = ?',
             [tenantId, externalOrderId]
           );
+          
           if (ordersByExternalId.length > 0) {
-            // Aynı externalOrderId var ama paket numarası farklı mı kontrol et
-            const [existingOrderDetails] = await poolWrapper.execute(
-              'SELECT packageNumber FROM hepsiburada_orders WHERE id = ? AND tenantId = ?',
-              [ordersByExternalId[0].id, tenantId]
-            );
+            const existingPackageNumber = ordersByExternalId[0].packageNumber;
             
-            // Eğer mevcut siparişin paket numarası yoksa veya farklıysa, yeni sipariş oluştur
-            // (Aynı externalOrderId farklı paketlerde olabilir)
-            if (existingOrderDetails.length > 0) {
-              const existingPackageNumber = existingOrderDetails[0].packageNumber;
-              // Paket numarası yoksa veya aynıysa güncelle, farklıysa yeni sipariş oluştur
-              if (!packageNumber || existingPackageNumber === packageNumber || !existingPackageNumber) {
-                existingOrders = ordersByExternalId;
-                foundByExternalId = true;
-              }
-              // Eğer paket numarası farklıysa, existingOrders boş kalır (yeni sipariş oluşturulacak)
+            // Eğer yeni paket numarası varsa ve mevcut paket numarasından farklıysa
+            // Bu FARKLI bir paket demektir, YENİ sipariş oluştur!
+            if (packageNumber && existingPackageNumber && packageNumber !== existingPackageNumber) {
+              console.log(`⚠️ Aynı sipariş numarası (${externalOrderId}) ama farklı paket: ${existingPackageNumber} vs ${packageNumber} - YENİ sipariş oluşturulacak`);
+              existingOrders = []; // Yeni sipariş oluştur
             } else {
+              // Paket numarası yoksa veya aynıysa, mevcut siparişi güncelle
               existingOrders = ordersByExternalId;
               foundByExternalId = true;
+              console.log(`✅ Sipariş numarası ile mevcut sipariş bulundu: ${externalOrderId}`);
             }
           }
         }
@@ -10468,29 +10464,34 @@ app.post('/api/admin/hepsiburada-orders/import', authenticateAdmin, async (req, 
           // Mevcut siparişi güncelle
           hepsiburadaOrderId = existingOrders[0].id;
           
-          // Eğer externalOrderId ile bulunduysak, externalOrderId'yi değiştirmemeliyiz (unique constraint)
-          // Eğer paket numarası ile bulunduysak, externalOrderId'yi birleştirebiliriz
+          // externalOrderId güncelleme mantığı
+          // NOT: Aynı paket içinde sipariş numarası değişmemeli!
           let finalExternalOrderId = null;
           let updateExternalOrderId = false;
           
-          if (!foundByExternalId) {
-            // Paket numarası ile bulunduysak, externalOrderId'yi birleştir
+          if (foundByPackage) {
+            // Paket numarası ile bulundu - sipariş numarasını kontrol et
             const [currentOrder] = await poolWrapper.execute(
               'SELECT externalOrderId FROM hepsiburada_orders WHERE id = ? AND tenantId = ?',
               [hepsiburadaOrderId, tenantId]
             );
             
-            if (currentOrder.length > 0 && currentOrder[0].externalOrderId) {
+            if (currentOrder.length > 0) {
               const currentExternalId = currentOrder[0].externalOrderId;
-              // Eğer yeni externalOrderId mevcut olanı içermiyorsa, birleştir
-              if (externalOrderId && !currentExternalId.includes(externalOrderId)) {
-                finalExternalOrderId = `${currentExternalId}, ${externalOrderId}`;
+              
+              // Eğer sipariş numarası değişmişse uyarı ver (bu normalinde olmamalı)
+              if (externalOrderId && currentExternalId !== externalOrderId) {
+                console.warn(`⚠️ Aynı paket (${packageNumber}) için sipariş numarası değişti: ${currentExternalId} → ${externalOrderId}`);
+                finalExternalOrderId = externalOrderId;
                 updateExternalOrderId = true;
               }
             } else if (externalOrderId) {
               finalExternalOrderId = externalOrderId;
               updateExternalOrderId = true;
             }
+          } else if (foundByExternalId) {
+            // Sipariş numarası ile bulundu - değiştirme (unique constraint)
+            // Paket numarası güncellenebilir
           }
           
           // UPDATE sorgusu - externalOrderId'yi sadece gerekirse güncelle

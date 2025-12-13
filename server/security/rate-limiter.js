@@ -13,7 +13,7 @@ class RateLimiter {
   /**
    * Rate limit kontrolü
    */
-  checkRateLimit(ip, endpoint, maxRequests = 100, windowMs = 60000) {
+  checkRateLimit(ip, endpoint, maxRequests = 10000, windowMs = 60000) {
     const key = `${ip}_${endpoint}`;
     const now = Date.now();
     
@@ -97,7 +97,7 @@ class RateLimiter {
    */
   middleware(options = {}) {
     const {
-      maxRequests = 100,
+      maxRequests = 10000,
       windowMs = 60000,
       endpoint = 'default',
       skipSuccessfulRequests = false

@@ -53,7 +53,6 @@ export default function TrendyolOrders() {
   const [selectedOrder, setSelectedOrder] = useState<MarketplaceOrder | null>(null)
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null)
   const [invoiceLink, setInvoiceLink] = useState<string>('')
-  const [invoiceSearchQuery, setInvoiceSearchQuery] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [startDate, setStartDate] = useState('')
@@ -160,29 +159,14 @@ export default function TrendyolOrders() {
     setShowOrderDetailModal(true)
     setSelectedInvoiceId(null)
     setInvoiceLink('')
-    setInvoiceSearchQuery('')
     
     // Faturaları yükle
     try {
       const response = await api.get<ApiResponse<any[]>>('/admin/invoices')
       if (response.success && response.data && response.data.length > 0) {
         setInvoices(response.data)
-        // Müşteri adına göre otomatik eşleştirme
-        const customerName = order.customerName?.toLowerCase().trim() || ''
-        if (customerName) {
-          const matchedInvoice = response.data.find((inv: any) => {
-            const invoiceCustomerName = inv.customerName?.toLowerCase().trim() || ''
-            return invoiceCustomerName && invoiceCustomerName === customerName
-          })
-          
-          if (matchedInvoice) {
-            setSelectedInvoiceId(matchedInvoice.id)
-          } else {
-            setSelectedInvoiceId(response.data[0].id)
-          }
-        } else {
-          setSelectedInvoiceId(response.data[0].id)
-        }
+        // İlk faturayı varsayılan olarak seç
+        setSelectedInvoiceId(response.data[0].id)
       }
     } catch (err: any) {
       console.error('Faturalar yüklenemedi:', err)
@@ -269,7 +253,6 @@ export default function TrendyolOrders() {
           invoiceUrl: invoiceUrl,
           cargoTrackingNumber: cargoTrackingNumber,
           cargoProviderName: cargoProviderName,
-          provider: 'trendyol',
           customerName: selectedOrder.customerName,
           customerEmail: selectedOrder.customerEmail,
           customerPhone: selectedOrder.customerPhone,
@@ -307,61 +290,16 @@ export default function TrendyolOrders() {
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `kargo-fisi-${selectedOrder.externalOrderId}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
         
-        // Müşteri adını dosya adı için hazırla (özel karakterleri temizle)
-        const customerName = selectedOrder.customerName || 'Musteri'
-        const sanitizedCustomerName = customerName
-          .replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\s]/g, '') // Özel karakterleri temizle
-          .replace(/\s+/g, '_') // Boşlukları alt çizgi ile değiştir
-          .substring(0, 50) // Maksimum 50 karakter
-        const fileName = `kargo-fisi-${sanitizedCustomerName}-${selectedOrder.externalOrderId}.pdf`
-        
-        // Backend'de veritabanı güncellemesi PDF oluşturulduktan sonra yapılıyor (doc.on('end'))
-        // Bu yüzden response geldikten sonra kısa bir süre bekleyip siparişleri yeniden yükle
-        setTimeout(async () => {
-          await loadOrders()
-        }, 1000)
-
-        // Kullanıcı deneyimi için hemen state'i güncelle (badge kalıcı görünsün)
-        setOrders(prev =>
-          prev.map(o => o.id === selectedOrder.id ? { ...o, cargoSlipPrintedAt: new Date().toISOString() } : o)
-        )
-        setSelectedOrder(current => current ? { ...current, cargoSlipPrintedAt: new Date().toISOString() } : current)
-        
-        // PDF'i yeni pencerede aç ve yazdır
-        const printWindow = window.open(url, '_blank')
-        if (printWindow) {
-          // onload event'i her zaman çalışmayabilir, bu yüzden setTimeout kullan
-          setTimeout(() => {
-            try {
-              printWindow.print()
-            } catch (err) {
-              console.error('Yazdırma hatası:', err)
-            }
-            
-            // Yazdırma işlemi tamamlandıktan sonra indirme seçeneği sun
-            setTimeout(() => {
-              if (confirm('Kargo fişi yazdırıldı. Dosyayı indirmek ister misiniz?')) {
-                const a = document.createElement('a')
-                a.href = url
-                a.download = fileName
-                document.body.appendChild(a)
-                a.click()
-                document.body.removeChild(a)
-              }
-              window.URL.revokeObjectURL(url)
-            }, 1000)
-          }, 500)
-        } else {
-          // Popup engellendi, direkt indir
-          const a = document.createElement('a')
-          a.href = url
-          a.download = fileName
-          document.body.appendChild(a)
-          a.click()
-          window.URL.revokeObjectURL(url)
-          document.body.removeChild(a)
-        }
+        // Kargo fişi başarıyla indirildi, siparişleri yeniden yükle (veritabanından cargoSlipPrintedAt bilgisi gelecek)
+        await loadOrders()
       } else {
         const errorText = await response.text()
         let errorMessage = 'Bilinmeyen hata'
@@ -711,82 +649,36 @@ export default function TrendyolOrders() {
                         )}
                       </div>
                       
-                      {/* Fatura Arama */}
-                      {invoices.length > 0 && (
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Fatura Ara
-                          </label>
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <input
-                              type="text"
-                              value={invoiceSearchQuery}
-                              onChange={(e) => setInvoiceSearchQuery(e.target.value)}
-                              placeholder="Fatura numarası, müşteri adı veya dosya adı ile ara..."
-                              disabled={!!(invoiceLink && invoiceLink.trim())}
-                              className={`w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                invoiceLink && invoiceLink.trim() 
-                                  ? 'opacity-50 cursor-not-allowed' 
-                                  : ''
-                              }`}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      
                       {/* Fatura Seçimi - Link girildiğinde devre dışı */}
                       {invoices.length > 0 && (
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Kargo Fişi için Fatura Seçimi
                           </label>
-                          {(() => {
-                            // Faturaları arama sorgusuna göre filtrele
-                            const filteredInvoices = invoices.filter((invoice: any) => {
-                              if (!invoiceSearchQuery.trim()) return true
-                              const query = invoiceSearchQuery.toLowerCase().trim()
-                              const invoiceNumber = (invoice.invoiceNumber || `Fatura #${invoice.id}`).toLowerCase()
-                              const customerName = (invoice.customerName || '').toLowerCase()
-                              const fileName = (invoice.fileName || '').toLowerCase()
-                              
-                              return invoiceNumber.includes(query) || 
-                                     customerName.includes(query) || 
-                                     fileName.includes(query)
-                            })
-                            
-                            return (
-                              <select
-                                value={selectedInvoiceId || ''}
-                                onChange={(e) => {
-                                  setSelectedInvoiceId(Number(e.target.value))
-                                  if (e.target.value) {
-                                    setInvoiceLink('')
-                                  }
-                                }}
-                                disabled={!!(invoiceLink && invoiceLink.trim())}
-                                className={`w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                  invoiceLink && invoiceLink.trim() 
-                                    ? 'opacity-50 cursor-not-allowed' 
-                                    : ''
-                                }`}
-                              >
-                                <option value="">Fatura Seçiniz</option>
-                                {filteredInvoices.length === 0 ? (
-                                  <option value="" disabled>Fatura bulunamadı</option>
-                                ) : (
-                                  filteredInvoices.map((invoice) => (
-                                    <option key={invoice.id} value={invoice.id}>
-                                      {invoice.invoiceNumber || `Fatura #${invoice.id}`} 
-                                      {invoice.customerName && ` - ${invoice.customerName}`}
-                                      {invoice.fileName && ` - ${invoice.fileName}`}
-                                      {invoice.totalAmount && ` (${Number(invoice.totalAmount).toFixed(2)} ${invoice.currency || 'TRY'})`}
-                                    </option>
-                                  ))
-                                )}
-                              </select>
-                            )
-                          })()}
+                          <select
+                            value={selectedInvoiceId || ''}
+                            onChange={(e) => {
+                              setSelectedInvoiceId(Number(e.target.value))
+                              if (e.target.value) {
+                                setInvoiceLink('')
+                              }
+                            }}
+                            disabled={!!(invoiceLink && invoiceLink.trim())}
+                            className={`w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                              invoiceLink && invoiceLink.trim() 
+                                ? 'opacity-50 cursor-not-allowed' 
+                                : ''
+                            }`}
+                          >
+                            <option value="">Fatura Seçiniz</option>
+                            {invoices.map((invoice) => (
+                              <option key={invoice.id} value={invoice.id}>
+                                {invoice.invoiceNumber || `Fatura #${invoice.id}`} 
+                                {invoice.fileName && ` - ${invoice.fileName}`}
+                                {invoice.totalAmount && ` (${Number(invoice.totalAmount).toFixed(2)} ${invoice.currency || 'TRY'})`}
+                              </option>
+                            ))}
+                          </select>
                           {selectedInvoiceId && !invoiceLink && (
                             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                               Seçili fatura kargo fişindeki QR kodda kullanılacak

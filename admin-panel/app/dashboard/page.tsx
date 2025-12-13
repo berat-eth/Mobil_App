@@ -58,7 +58,6 @@ import GoogleMapsScraper from '@/components/GoogleMapsScraper'
 import SEO from '@/components/SEO'
 import Popups from '@/components/Popups'
 import Analytics from '@/components/Analytics'
-import Reports from '@/components/Reports'
 import MLInsights from '@/components/MLInsights'
 import Integrations from '@/components/Integrations'
 import TrendyolOrders from '@/components/TrendyolOrders'
@@ -252,7 +251,6 @@ export default function DashboardPage() {
           {activeTab === 'customer-care' && <CustomerCare />}
           {activeTab === 'segments' && <Segments />}
 
-          {activeTab === 'reports' && <Reports />}
           {activeTab === 'analytics' && <Analytics />}
           {activeTab === 'ml-insights' && <MLInsights />}
           {activeTab === 'live-data' && <LiveData />}

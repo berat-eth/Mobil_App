@@ -19596,13 +19596,35 @@ async function startServer() {
       const { userId } = req.params;
       console.log(`💰 Getting wallet for user: ${userId}`);
 
+      // Validate userId is a valid number
+      const userIdNum = parseInt(userId);
+      if (isNaN(userIdNum) || userIdNum <= 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid userId parameter' 
+        });
+      }
+
       // Default tenant ID for guest users
       const tenantId = 1;
+
+      // Check if user exists first
+      const [userRows] = await poolWrapper.execute(
+        'SELECT id FROM users WHERE id = ? AND tenantId = ?',
+        [userIdNum, tenantId]
+      );
+
+      if (userRows.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'User not found' 
+        });
+      }
 
       // Get user wallet balance
       const [walletRows] = await poolWrapper.execute(
         'SELECT balance, currency FROM user_wallets WHERE userId = ? AND tenantId = ?',
-        [userId, tenantId]
+        [userIdNum, tenantId]
       );
 
       let balance = 0;
@@ -19615,7 +19637,7 @@ async function startServer() {
         // Create wallet if doesn't exist
         await poolWrapper.execute(
           'INSERT INTO user_wallets (userId, tenantId, balance, currency) VALUES (?, ?, ?, ?)',
-          [userId, tenantId, 0, 'TRY']
+          [userIdNum, tenantId, 0, 'TRY']
         );
       }
 

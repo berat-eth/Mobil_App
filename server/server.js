@@ -19648,7 +19648,7 @@ async function startServer() {
        WHERE userId = ? AND tenantId = ? 
        ORDER BY createdAt DESC 
        LIMIT 20`,
-        [userId, tenantId]
+        [userIdNum, tenantId]
       );
 
       console.log(`✅ Found wallet with balance: ${balance} ${currency}, ${transactions.length} transactions`);
